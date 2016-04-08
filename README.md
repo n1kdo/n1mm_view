@@ -1,6 +1,6 @@
 # n1mm_view
 
-`n1mm_view` is a set of python scripts to display real-time contest QSO statistics for ARRL Field Day.
+`n1mm_view` is a set of python scripts to display real-time contest QSO statistics for :zap: N4N ARRL Field Day.
 
 It listens to N1MM+ "Contact Info" UDP broadcasts 
 (see the [N1MM+ documentation](http://n1mm.hamdocs.com/tiki-index.php?page=UDP+Broadcasts))
@@ -19,16 +19,35 @@ Currently, it supports the following displays:
 * QSOs Summary Table
 * QSO/Hour Rate Table
 
-Dependencies:
+### Dependencies:
 
 * python 2.7
 * python matplotlib library
 * python pygame library
 * python sqlite3 library
 
-Components:
+### Components:
 
 * collector.py -- collect contact data from n1mm+ broadcasts
 * dashboard.py -- display collected statistics on screen
 * n1mm_view_constants.py -- constant values shared by collector and dashboard.  Bands and Modes are defined here.
 * replayer.py -- test application, "replays" an old N1MM+ log to test collector and dashboard.
+
+### License:
+
+This software is licensed under the terms of the "Simplified BSD license", see `LICENSE`.
+
+Copyright 2016, Jeffrey B. Otterson, N1KDO
+All Rights Reserved
+
+### To Do
+
+There's always more to do.  This project is still in late-prototype stage.
+
+* fix colors of matplotlib pie charts.  A white slice with white text is unreadable.
+* add command-line options
+* somebody might want to support other contests besides field day
+  * choropleth map to show areas worked
+  * multipliers table
+* the `qso_log` table could be exported to ADIF.
+* drink beer :beer:
