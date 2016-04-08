@@ -1,4 +1,8 @@
 #!/usr/bin/python
+"""
+n1mm_view dashboard
+This program displays QSO statistics collected by the collector.
+"""
 
 import os
 import pygame
@@ -6,20 +10,29 @@ import sqlite3
 import time
 import threading
 import matplotlib
+#  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
+#  But... it MUST be RIGHT HERE so matplotlib does not try to use the wrong backend.
 matplotlib.use('Agg')
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
 import pylab
+import logging
 
 from n1mm_view_constants import *
+
+__author__ = 'Jeffrey B. Otterson, N1KDO'
+__copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
+__license__ = 'Simplified BSD'
+
+database_name = 'n1mm_view.db'
 
 DISPLAY_DWELL_TIME = 5
 DATA_DWELL_TIME = 60
 
-GREEN = pygame.Color(0, 255, 0)
-BLACK = pygame.Color(0, 0, 0)
-WHITE = pygame.Color(255, 255, 255)
-GRAY = pygame.Color(192, 192, 192)
+GREEN = pygame.Color('#00ff00')
+BLACK = pygame.Color('#000000')
+WHITE = pygame.Color('#ffffff')
+GRAY = pygame.Color('#cccccc')
 
 image_index = 0
 
@@ -28,29 +41,37 @@ qso_stations = []
 qso_band_modes = []
 operator_qso_rates = []
 
-QSO_OPERATORS_IMAGE_INDEX = 0
-QSO_STATIONS_IMAGE_INDEX = 1
-QSO_BANDS_IMAGE_INDEX = 2
-QSO_MODES_IMAGE_INDEX = 3
-QSO_COUNTS_IMAGE_INDEX = 4
-QSO_RATES_IMAGE_INDEX = 5
+screen = None
+size = None
+
+QSO_COUNTS_IMAGE_INDEX = 0
+QSO_RATES_IMAGE_INDEX = 1
+QSO_OPERATORS_IMAGE_INDEX = 2
+QSO_STATIONS_IMAGE_INDEX = 3
+QSO_BANDS_IMAGE_INDEX = 4
+QSO_MODES_IMAGE_INDEX = 5
 IMAGE_COUNT = 6
 images = [None] * IMAGE_COUNT
 
-
-def log(message):
-    print '%f %s' % (time.clock(), message)
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
+logging.Formatter.converter = time.gmtime
 
 
 def load_data():
     """
     load data from the database tables
     """
-    log('load data')
-    global cursor
+    logging.debug('load data')
+    db = None
+
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
 
     try:
+        db = sqlite3.connect(database_name)
+        cursor = db.cursor()
+        logging.debug('database connected')
+
         # load qso_operators
         qso_operators = []
         cursor.execute('SELECT name, qso_count FROM qso_operator JOIN operator\n'
@@ -78,25 +99,23 @@ def load_data():
         slices_per_hour = 60 / slice_minutes
 
         # this is useful for debugging, but not so useful beyond that.
+
+        #  get timestamp from the last record in the database
+        #  cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
+        #  print time.clock()
+        #  for row in cursor:
+        #    end_time = row[0]
+        #  print 'database end_time is %d' % end_time
         # the timestamp should be 60 seconds behind current time.
         end_time = int(time.time()) - 60
-        #print 'calculated end_time is %d' % end_time
-
-        # get timestamp from the last record in the database
-        #cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
-        #print time.clock()
-        #for row in cursor:
-        #    end_time = row[0]
-        #print 'database end_time is %d' % end_time
 
         start_time = end_time - slice_minutes * 60
-        print start_time, end_time
 
         cursor.execute('SELECT operator.name, COUNT(operator_id) qso_count FROM qso_log\n'
                        'JOIN operator ON operator.id = operator_id\n'
                        'WHERE timestamp >= ? AND timestamp <= ?\n'
                        'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, end_time))
-        operator_qso_rates = [['Operator','Rate']]
+        operator_qso_rates = [['Operator', 'Rate']]
         total = 0
         for row in cursor:
             rate = row[1] * slices_per_hour
@@ -104,17 +123,18 @@ def load_data():
             operator_qso_rates.append([row[0], '%4d' % rate])
         operator_qso_rates.append(['Total', '%4d' % total])
 
-        log('load data done')
+        logging.debug('load data done')
     except sqlite3.OperationalError:
-        log('could not load data, database error')
+        logging.warn('could not load data, database error')
+    if db is not None:
+        db.close()
 
 
 def init_display():
+    """
+    set up the pygame display, full screen
+    """
     global screen, size
-
-    disp_no = os.getenv("DISPLAY")
-    if disp_no:
-        print "I'm running under X display = {0}".format(disp_no)
 
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
@@ -127,10 +147,10 @@ def init_display():
         try:
             pygame.display.init()
         except pygame.error:
-            print 'Driver: {0} failed.'.format(driver)
+            #  logging.warn('Driver: %s failed.' % driver)
             continue
         found = True
-        print 'using {0} driver'.format(driver)
+        logging.info('using %s driver' % driver)
         break
 
     if not found:
@@ -138,19 +158,21 @@ def init_display():
 
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
-    print "display size: %d x %d" % (size[0], size[1])
+    logging.info('display size: %d x %d' % size)
     screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     # Clear the screen to start
     screen.fill(BLACK)
     # Initialise font support
     pygame.font.init()
-    # Render the screen
-    #pygame.display.update()
 
 
 def make_pie(values, labels, title):
-    # make this pie chart as tall as the display.
-    log('make_pie(...,...,%s)' % title)
+    """
+    make a pie chart using matplotlib.
+    return the chart as a pygame surface
+    make the pie chart a square that is as tall as the display.
+    """
+    logging.debug('make_pie(...,...,%s)' % title)
     inches = size[1] / 100.0
     fig = pylab.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
     ax = fig.add_subplot(111)
@@ -166,11 +188,15 @@ def make_pie(values, labels, title):
 
     canvas_size = canvas.get_width_height()
     surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
-    log('make_pie(...,...,%s) done' % title)
+    logging.debug('make_pie(...,...,%s) done' % title)
     return surf
 
 
 def show_graph(surf):
+    """
+    display a surface on the screen.
+    """
+    logging.debug('show_graph')
     global size
     xoffset = (size[0] - surf.get_width()) / 2
     # yoffset = (size[1] - surf.get_height()) / 2
@@ -180,6 +206,9 @@ def show_graph(surf):
 
 
 def qso_operators_graph():
+    """
+    create the QSOs by Operators pie chart
+    """
     global qso_operators
     # calculate QSO by Operator
     labels = []
@@ -191,7 +220,9 @@ def qso_operators_graph():
 
 
 def qso_stations_graph():
-    # calculate QSO by Station
+    """
+    create the QSOs by Station pie chart
+    """
     labels = []
     values = []
     for d in qso_stations:
@@ -201,7 +232,9 @@ def qso_stations_graph():
 
 
 def qso_bands_graph():
-    # calculate QSOs by Band
+    """
+    create the QSOs by Band pie chart
+    """
     labels = []
     values = []
     band_data = [[band, 0] for band in range(0, len(BANDS_LIST))]
@@ -217,7 +250,9 @@ def qso_bands_graph():
 
 
 def qso_modes_graph():
-    # calculate QSOs by Mode
+    """
+    create the QSOs by Mode pie chart
+    """
     labels = []
     values = []
     mode_data = [[mode, 0] for mode in range(0, len(MODES_LIST))]
@@ -233,13 +268,23 @@ def qso_modes_graph():
 
 
 def qso_summary_table():
+    """
+    create the QSO Summary Table
+    """
     return draw_table(make_score_table(), "QSOs Summary")
 
+
 def qso_rates_table():
+    """
+    create the QSO Rates by Operator table
+    """
     return draw_table(operator_qso_rates, "QSO/Hour Rates")
 
 
 def draw_clock():
+    """
+    add the time of day in GMT to the lower right of the screen
+    """
     font_size = 100
     font = pygame.font.Font(None, font_size)
     text = font.render(time.strftime('%H:%M:%S', time.gmtime()), True, GREEN, BLACK)
@@ -250,7 +295,10 @@ def draw_clock():
 
 
 def draw_table(cell_text, title):
-    log('draw_table(...,%s)' % title)
+    """
+    draw a table
+    """
+    logging.debug('draw_table(...,%s)' % title)
     font_size = 100
     font = pygame.font.Font(None, font_size)
 
@@ -266,8 +314,8 @@ def draw_table(cell_text, title):
     for row in cell_text:
         col_num = 0
         for col in row:
-            size = font.size(col)
-            text_width = size[0] + 2 * text_x_offset
+            text_size = font.size(col)
+            text_width = text_size[0] + 2 * text_x_offset
             if text_width > col_widths[col_num]:
                 col_widths[col_num] = text_width
             if text_width > widest:
@@ -332,7 +380,7 @@ def draw_table(cell_text, title):
             textpos.right = x - text_x_offset
             surf.blit(text, textpos)
         y += row_height
-    log('draw_table(...,%s) done' % title)
+    logging.debug('draw_table(...,%s) done' % title)
     return surf
 
 
@@ -355,8 +403,7 @@ def make_score_table():
     cell_data[0][0] = total
 
     # the totals are in the 0th row and 0th column, move them to last.
-    cell_text = []
-    cell_text.append(['', '   CW', 'Phone', ' Data', 'Total'])
+    cell_text = [['', '   CW', 'Phone', ' Data', 'Total']]
     band_num = 0
     for row in cell_data[1:]:
         band_num += 1
@@ -377,14 +424,19 @@ def make_score_table():
 
 
 def next_chart():
+    """
+    advance to the next chart
+    """
+    logging.debug('next_chart')
     global image_index, images
     surf = images[image_index]
-    if surf != None:
+    if surf is not None:
         show_graph(surf)
     image_index += 1
     if image_index >= IMAGE_COUNT:
         image_index = 0
     draw_clock()
+    logging.debug('next_chart - flip()')
     pygame.display.flip()
 
 
@@ -392,20 +444,16 @@ def refresh_data():
     """
     reload the data from the database, (re)generate graphics
     """
-    log('refresh_data')
-    global images, cursor
-    db = sqlite3.connect('n1mm-mon.db')
-    cursor = db.cursor()
-    log('database connected')
+    global images
+    logging.debug('refresh_data')
     load_data()
+    images[QSO_COUNTS_IMAGE_INDEX] = qso_summary_table()
+    images[QSO_RATES_IMAGE_INDEX] = qso_rates_table()
     images[QSO_OPERATORS_IMAGE_INDEX] = qso_operators_graph()
     images[QSO_STATIONS_IMAGE_INDEX] = qso_stations_graph()
     images[QSO_BANDS_IMAGE_INDEX] = qso_bands_graph()
     images[QSO_MODES_IMAGE_INDEX] = qso_modes_graph()
-    images[QSO_COUNTS_IMAGE_INDEX] = qso_summary_table()
-    images[QSO_RATES_IMAGE_INDEX] = qso_rates_table()
-    db.close()
-    log('images refreshed')
+    logging.debug('images refreshed')
 
 
 class UpdateThread (threading.Thread):
@@ -417,18 +465,11 @@ class UpdateThread (threading.Thread):
 
 
 def main():
-    print 'dashboard startup'
-    print
-    log('startup')
-
-    # open the database
-    global db, cursor
-
-    global size
+    logging.info('dashboard startup')
 
     init_display()
 
-    log('display setup')
+    logging.debug('display setup')
 
     refresh_data()
 
@@ -469,9 +510,7 @@ def main():
 
     pygame.display.quit()
 
-    print
-    print "dashboard exit"
-    print
+    logging.info('dashboard exit')
 
 
 if __name__ == '__main__':

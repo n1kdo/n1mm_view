@@ -1,10 +1,15 @@
 #!/usr/bin/python
 
-import os
 import sqlite3
 import time
 
-from n1mm_mon_constants import *
+cursor = None
+db = None
+qso_operators = []
+qso_stations = []
+qso_band_modes = []
+operator_qso_rates = []
+size = None
 
 
 def load_data():
@@ -12,7 +17,7 @@ def load_data():
     load data from the database tables
     """
     global cursor
-    global qso_operators, qso_stations, qso_band_modes
+    global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
 
     # load qso_operators
     qso_operators = []
@@ -48,9 +53,9 @@ def load_data():
     # get timestamp from the last record in the database
     cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
     print time.clock()
+    end_time = int(time.time()) - 60
     for row in cursor:
-        last_ts = row[0]
-    end_time = last_ts
+        end_time = row[0]
     print 'database end_time is %d' % end_time
 
     start_time = end_time - slice_minutes * 60
@@ -61,7 +66,7 @@ def load_data():
                    'WHERE timestamp >= ? AND timestamp <= ?\n'
                    'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, end_time))
 
-    operator_qso_rates = [['Operator','Rate']]
+    operator_qso_rates = [['Operator', 'Rate']]
     total = 0
 
     for row in cursor:
@@ -73,7 +78,6 @@ def load_data():
     print operator_qso_rates
 
 
-
 def main():
     print 'dashboard startup'
 
@@ -82,15 +86,12 @@ def main():
 
     global size
 
-    db = sqlite3.connect('n1mm-mon.db')
+    db = sqlite3.connect('n1mm_view.db')
     cursor = db.cursor()
-
 
     load_data()
 
-
     db.close()
-
 
 
 if __name__ == '__main__':

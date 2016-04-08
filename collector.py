@@ -1,6 +1,12 @@
 #!/usr/bin/python
+"""
+n1mm_view collector
+This program collects N1MM+ "Contact Info" broadcasts and saves data from the broadcasts
+in database tables.
+"""
 
 import calendar
+import logging
 import sqlite3
 import time
 from hashlib import md5
@@ -9,10 +15,20 @@ from xml.dom.minidom import parseString
 
 from n1mm_view_constants import *
 
+__author__ = 'Jeffrey B. Otterson, N1KDO'
+__copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
+__license__ = 'Simplified BSD'
+
 BROADCAST_PORT = 12060
 BROADCAST_BUF_SIZE = 2048
 
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.DEBUG)
+logging.Formatter.converter = time.gmtime
+
+
 # globals.
+database_name = 'n1mm_view.db'
 db = None
 cursor = None
 listener_run = True
@@ -160,7 +176,7 @@ def listener():
     try:
         s.bind(('', BROADCAST_PORT))
     except:
-        print "Error connecting to the UDP stream."
+        logging.critical('Error connecting to the UDP stream.')
         return
     while listener_run:
         try:
@@ -168,8 +184,7 @@ def listener():
             process_message(udp_data)
 
         except KeyboardInterrupt:
-            print
-            print 'Keyboard interrupt, shutting down...'
+            logging.info('Keyboard interrupt, shutting down...')
             listener_run = False
             s.close()
 
@@ -186,8 +201,7 @@ def get_from_dom(dom, name):
         else:
             return fc.nodeValue
     except Exception, e:
-        print Exception, e
-        print 'could not parse %s from dom.' % name
+        logging.exception('could not parse %s from dom.' % name, e)
         return ''
 
 
@@ -197,7 +211,7 @@ def lookup_band_id(band):
     """
     bid = BANDS.get(band)
     if bid is None:
-        print "unknown band %s" % band
+        logging.warn('unknown band %s' % band)
         return 0
     return bid
 
@@ -308,12 +322,12 @@ def record_contact(timestamp, mycall, band, mode, operator, station,
     operator_id = lookup_operator_id(operator)
     station_id = lookup_station_id(station)
 
-    print 'QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s' % (
+    logging.info('QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s' % (
         time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
         mycall, band,
         mode, operator,
         station, rx_freq, tx_freq, callsign, rst_sent,
-        rst_recv, exchange, section, comment)
+        rst_recv, exchange, section, comment))
 
     add_qso_operator(operator_id)
     add_qso_station(station_id)
@@ -369,22 +383,16 @@ def process_message(data):
                            rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                            exchange, section, comment)
         else:
-            print 'unknown message received, ignoring.'
-
-            # except Exception, err:
-            #  print 'Could not parse previous message'
-            #  print Exception, err
-            #  print sys.exc_info()
+            logging.warn('unknown message received, ignoring.')
 
 
-# mainline
 def main():
-    print 'Collector started...'
+    logging.info('Collector started...')
 
     global db, cursor
     global operators, stations
 
-    db = sqlite3.connect('n1mm-mon.db')
+    db = sqlite3.connect(database_name)
     cursor = db.cursor()
     create_tables()
     load_data()
@@ -393,7 +401,7 @@ def main():
 
     db.close()
 
-    print 'Collector done...'
+    logging.info('Collector done...')
 
 
 if __name__ == '__main__':

@@ -88,8 +88,8 @@ def main():
                    'FROM DXLOG order by TS;')
     qso_number = 0
     for row in cursor:
-        ts = row[0]
-        ts = int(time.time())
+        #  ts = row[0]
+        ts =  time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         band = convert_band(row[1])
         rx_freq = row[2] * 100
         tx_freq = row[3] * 100
@@ -100,7 +100,7 @@ def main():
 
         s.sendto(payload, (BROADCAST_ADDRESS, BROADCAST_PORT))
         qso_number += 1
-        print "sent qso # %d timestamp %s" % (qso_number, row[0])
+        print "sent qso # %d timestamp %s" % (qso_number, ts)
         # there are ~4000 qsos in the database.
         # 4/sec will take ~1000 sec --> 17 minutes to play back -- the entire contest.
         time.sleep(0.25)
