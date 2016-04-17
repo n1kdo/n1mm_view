@@ -14,12 +14,12 @@ from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REU
 from xml.dom.minidom import parseString
 
 from n1mm_view_constants import *
+from n1mm_view_config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-BROADCAST_PORT = 12060
 BROADCAST_BUF_SIZE = 2048
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
@@ -174,7 +174,7 @@ def listener():
     s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     try:
-        s.bind(('', BROADCAST_PORT))
+        s.bind(('', N1MM_BROADCAST_PORT))
     except:
         logging.critical('Error connecting to the UDP stream.')
         return

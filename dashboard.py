@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, DateFormatter
 
 from n1mm_view_constants import *
+from n1mm_view_config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
@@ -36,10 +37,9 @@ BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
 GRAY = pygame.Color('#cccccc')
 
-STATUS_LINE_HEIGHT = 100
-
+view_font = None
+view_font_height = 0
 image_index = 0
-
 qso_operators = []
 qso_stations = []
 qso_band_modes = []
@@ -51,6 +51,7 @@ last_qso_time = 0
 
 screen = None
 size = None
+graph_size = None
 
 LOGO_IMAGE_INDEX = 0
 QSO_COUNTS_IMAGE_INDEX = 1
@@ -173,7 +174,7 @@ def init_display():
     """
     set up the pygame display, full screen
     """
-    global screen, size
+    global screen, size, graph_size, view_font, view_font_height
 
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
@@ -198,11 +199,18 @@ def init_display():
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
     logging.info('display size: %d x %d' % size)
-    screen = pygame.display.set_mode(size,  pygame.FULLSCREEN)
+    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     # Clear the screen to start
     screen.fill(BLACK)
     # Initialise font support
     pygame.font.init()
+    view_font = pygame.font.Font('veraMoBd.ttf', 64)
+    # view_font = pygame.font.SysFont('monospace', 100)
+    view_font_height = view_font.get_height()
+    graph_size = (pygame.display.Info().current_w, pygame.display.Info().current_h - view_font_height)
+    print '\n\n\n\n\n'
+    print pygame.font.get_fonts()
+    print '\n\n\n\n\n'
 
 
 def make_pie(values, labels, title):
@@ -212,15 +220,16 @@ def make_pie(values, labels, title):
     make the pie chart a square that is as tall as the display.
     """
     logging.debug('make_pie(...,...,%s)' % title)
-    inches = size[1] / 100.0
+    inches = graph_size[1] / 100.0
     fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
     ax = fig.add_subplot(111)
     ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'white'})
     ax.set_title(title, color='white', size='xx-large', weight='bold')
     handles, labels = ax.get_legend_handles_labels()
     legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='best')
-    legend.get_frame().set_color((0, 0, 0, 0))
-    legend.get_frame().set_edgecolor('w')
+    frame = legend.get_frame()
+    frame.set_color((0, 0, 0, 0.75))
+    frame.set_edgecolor('w')
     legend.get_title().set_color('w')
     for text in legend.get_texts():
         plt.setp(text, color='w')
@@ -242,9 +251,8 @@ def show_graph(surf):
     display a surface on the screen.
     """
     logging.debug('show_graph')
-    global size
-    xoffset = (size[0] - surf.get_width()) / 2
-    # yoffset = (size[1] - surf.get_height()) / 2
+    xoffset = (graph_size[0] - surf.get_width()) / 2
+    # yoffset = (graph_size[1] - surf.get_height()) / 2
     yoffset = 0
     screen.fill((0, 0, 0))
     screen.blit(surf, (xoffset, yoffset))
@@ -333,6 +341,7 @@ def qso_rates_chart():
     """
     title = 'QSOs per Hour by Band'
     qso_counts = [[], [], [], [], [], [], [], [], [], []]
+    data_valid = len(qsos_per_hour) != 0
 
     for qpm in qsos_per_hour:
         for i in range(0, len(BANDS_LIST)):
@@ -341,35 +350,38 @@ def qso_rates_chart():
             cl.append(c)
 
     logging.debug('make_plot(...,...,%s)' % title)
-    inches = size[1] / 100.0
-    fig = plt.Figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='black')
+    width_inches = graph_size[0] / 100.0
+    height_inches = graph_size[1] / 100.0
+    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
     ax = fig.add_subplot(111, axisbg='black')
     ax.set_title(title, color='white', size='xx-large', weight='bold')
-    dates = matplotlib.dates.date2num(qso_counts[0])
-    colors = ['', 'r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
-    for i in range(1, len(BANDS_LIST)):
-        if qsos_by_band[i]:
-            line, = ax.plot_date(dates, qso_counts[i], fmt='-', xdate=True, ydate=False, label=BANDS_TITLE[i])
-            line.set_color(colors[i])
-            line.set_linewidth(2.0)
-    ax.grid(True)
-    legend = ax.legend(loc='best', ncol=2)
-    legend.get_frame().set_color((0, 0, 0, 0))
-    legend.get_frame().set_edgecolor('w')
-    for text in legend.get_texts():
-        plt.setp(text, color='w')
-    ax.spines['left'].set_color('w')
-    ax.spines['right'].set_color('w')
-    ax.spines['top'].set_color('w')
-    ax.spines['bottom'].set_color('w')
-    ax.tick_params(axis='y', colors='w')
-    ax.tick_params(axis='x', colors='w')
-    ax.set_ylabel('QSO Rate/Hour', color='w', size='x-large', weight='bold')
-    ax.set_xlabel('UTC Hour', color='w', size='x-large', weight='bold')
-    hour_locator = HourLocator()
-    hour_formatter = DateFormatter('%H')
-    ax.xaxis.set_major_locator(hour_locator)
-    ax.xaxis.set_major_formatter(hour_formatter)
+
+    if data_valid:
+        dates = matplotlib.dates.date2num(qso_counts[0])
+        colors = ['', 'r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
+        for i in range(1, len(BANDS_LIST)):
+            if qsos_by_band[i]:
+                line, = ax.plot_date(dates, qso_counts[i], fmt='-', xdate=True, ydate=False, label=BANDS_TITLE[i])
+                line.set_color(colors[i])
+                line.set_linewidth(2.0)
+        ax.grid(True)
+        legend = ax.legend(loc='best', ncol=2)
+        legend.get_frame().set_color((0, 0, 0, 0))
+        legend.get_frame().set_edgecolor('w')
+        for text in legend.get_texts():
+            plt.setp(text, color='w')
+        ax.spines['left'].set_color('w')
+        ax.spines['right'].set_color('w')
+        ax.spines['top'].set_color('w')
+        ax.spines['bottom'].set_color('w')
+        ax.tick_params(axis='y', colors='w')
+        ax.tick_params(axis='x', colors='w')
+        ax.set_ylabel('QSO Rate/Hour', color='w', size='x-large', weight='bold')
+        ax.set_xlabel('UTC Hour', color='w', size='x-large', weight='bold')
+        hour_locator = HourLocator()
+        hour_formatter = DateFormatter('%H')
+        ax.xaxis.set_major_locator(hour_locator)
+        ax.xaxis.set_major_formatter(hour_formatter)
 
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
@@ -387,9 +399,7 @@ def draw_clock():
     """
     add the time of day in GMT to the lower right of the screen
     """
-    font_size = STATUS_LINE_HEIGHT
-    font = pygame.font.Font(None, font_size)
-    text = font.render(time.strftime('%H:%M:%S', time.gmtime()), True, GREEN, BLACK)
+    text = view_font.render(time.strftime('%H:%M:%S', time.gmtime()), True, GREEN, BLACK)
     textpos = text.get_rect()
     textpos.bottom = size[1] - 1
     textpos.right = size[0] - 1
@@ -402,7 +412,8 @@ def draw_table(cell_text, title):
     """
     logging.debug('draw_table(...,%s)' % title)
     font_size = 100
-    font = pygame.font.Font(None, font_size)
+    # font = pygame.font.Font(None, font_size)
+    table_font = view_font
 
     text_y_offset = 4
     text_x_offset = 4
@@ -416,7 +427,7 @@ def draw_table(cell_text, title):
     for row in cell_text:
         col_num = 0
         for col in row:
-            text_size = font.size(col)
+            text_size = table_font.size(col)
             text_width = text_size[0] + 2 * text_x_offset
             if text_width > col_widths[col_num]:
                 col_widths[col_num] = text_width
@@ -427,7 +438,7 @@ def draw_table(cell_text, title):
     # cheat on column widths -- set all to the widest.
     # maybe someday I'll fix this to dynamically set each column width.  or something.
     column_width = widest
-    row_height = font.get_height()
+    row_height = table_font.get_height()
     width = cols * column_width + line_width / 2
     height = (rows + 1) * row_height + line_width / 2
     surf = pygame.Surface((width, height))
@@ -438,7 +449,7 @@ def draw_table(cell_text, title):
     grid_color = GRAY
 
     # draw the title
-    text = font.render(title, True, head_color)
+    text = table_font.render(title, True, head_color)
     textpos = text.get_rect()
     textpos.y = 0
     textpos.centerx = width / 2
@@ -474,9 +485,9 @@ def draw_table(cell_text, title):
             column_number += 1
             x += column_width
             if row_number == 1 or column_number == 1:
-                text = font.render(col, True, head_color)
+                text = table_font.render(col, True, head_color)
             else:
-                text = font.render(col, True, text_color)
+                text = table_font.render(col, True, text_color)
             textpos = text.get_rect()
             textpos.y = y - text_y_offset
             textpos.right = x - text_x_offset
