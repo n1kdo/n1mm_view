@@ -31,7 +31,12 @@ Currently, it supports the following displays:
 * collector.py -- collect contact data from n1mm+ broadcasts
 * dashboard.py -- display collected statistics on screen
 * n1mm_view_constants.py -- constant values shared by collector and dashboard.  Bands and Modes are defined here.
+* n1mm_view_config.py -- configuration data.  in theory, the only part you should need to edit to configure n1mm_view for your environment.
 * replayer.py -- test application, "replays" an old N1MM+ log to test collector and dashboard.
+
+### Installation
+
+See `INSTALL_RASPI.md` for information to install n1mm_view on a Raspberry Pi.
 
 ### License:
 
