@@ -4,19 +4,21 @@ n1mm_view dashboard
 This program displays QSO statistics collected by the collector.
 """
 
+import datetime
+import logging
 import os
 import pygame
 import sqlite3
 import time
 import threading
+
 import matplotlib
 #  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
 #  But... it MUST be RIGHT HERE so matplotlib does not try to use the wrong backend.
 matplotlib.use('Agg')
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
-import pylab
-import logging
+from matplotlib.dates import HourLocator, DateFormatter
 
 from n1mm_view_constants import *
 
@@ -34,23 +36,31 @@ BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
 GRAY = pygame.Color('#cccccc')
 
+STATUS_LINE_HEIGHT = 100
+
 image_index = 0
 
 qso_operators = []
 qso_stations = []
 qso_band_modes = []
 operator_qso_rates = []
+qsos_per_hour = []
+qsos_by_band = []
+first_qso_time = 0
+last_qso_time = 0
 
 screen = None
 size = None
 
-QSO_COUNTS_IMAGE_INDEX = 0
-QSO_RATES_IMAGE_INDEX = 1
-QSO_OPERATORS_IMAGE_INDEX = 2
-QSO_STATIONS_IMAGE_INDEX = 3
-QSO_BANDS_IMAGE_INDEX = 4
-QSO_MODES_IMAGE_INDEX = 5
-IMAGE_COUNT = 6
+LOGO_IMAGE_INDEX = 0
+QSO_COUNTS_IMAGE_INDEX = 1
+QSO_RATES_IMAGE_INDEX = 2
+QSO_OPERATORS_IMAGE_INDEX = 3
+QSO_STATIONS_IMAGE_INDEX = 4
+QSO_BANDS_IMAGE_INDEX = 5
+QSO_MODES_IMAGE_INDEX = 6
+QSO_RATE_CHART_IMAGE_INDEX = 7
+IMAGE_COUNT = 8
 images = [None] * IMAGE_COUNT
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
@@ -66,6 +76,7 @@ def load_data():
     db = None
 
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
+    global qsos_per_hour, qsos_by_band, first_qso_time, last_qso_time
 
     try:
         db = sqlite3.connect(database_name)
@@ -98,23 +109,24 @@ def load_data():
         slice_minutes = 10
         slices_per_hour = 60 / slice_minutes
 
-        # this is useful for debugging, but not so useful beyond that.
+        # get timestamp from the first record in the database
+        cursor.execute('SELECT timestamp FROM qso_log ORDER BY id LIMIT 1')
+        first_qso_time = int(time.time()) - 60
+        for row in cursor:
+            first_qso_time = row[0]
 
-        #  get timestamp from the last record in the database
-        #  cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
-        #  print time.clock()
-        #  for row in cursor:
-        #    end_time = row[0]
-        #  print 'database end_time is %d' % end_time
-        # the timestamp should be 60 seconds behind current time.
-        end_time = int(time.time()) - 60
+        # get timestamp from the last record in the database
+        cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
+        last_qso_time = int(time.time()) - 60
+        for row in cursor:
+            last_qso_time = row[0]
 
-        start_time = end_time - slice_minutes * 60
+        start_time = last_qso_time - slice_minutes * 60
 
         cursor.execute('SELECT operator.name, COUNT(operator_id) qso_count FROM qso_log\n'
                        'JOIN operator ON operator.id = operator_id\n'
                        'WHERE timestamp >= ? AND timestamp <= ?\n'
-                       'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, end_time))
+                       'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, last_qso_time))
         operator_qso_rates = [['Operator', 'Rate']]
         total = 0
         for row in cursor:
@@ -122,6 +134,33 @@ def load_data():
             total += rate
             operator_qso_rates.append([row[0], '%4d' % rate])
         operator_qso_rates.append(['Total', '%4d' % total])
+
+
+
+        qsos_per_hour = []
+        qsos_by_band = [0] * len(BANDS_LIST)
+        slice_minutes = 15
+        slices_per_hour = 60 / slice_minutes
+        window_seconds = slice_minutes * 60
+
+        cursor.execute('SELECT timestamp / %d * %d AS ts, band_id, COUNT(*) AS qso_count \n'
+                       'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
+        for row in cursor:
+            if len(qsos_per_hour) == 0:
+                qsos_per_hour.append([0] * len(BANDS_LIST))
+                qsos_per_hour[-1][0] = row[0]
+                # print "inserted first row with timestamp %d" % row[0]
+            while qsos_per_hour[-1][0] != row[0]:
+                # print 'the last rec ts is %d, but I need ts %d' %(recs[-1][0], row[0])
+                ts = qsos_per_hour[-1][0] + window_seconds
+                qsos_per_hour.append([0] * len(BANDS_LIST))
+                qsos_per_hour[-1][0] = ts
+            qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
+            qsos_by_band[row[1]] += row[2]
+
+        for rec in qsos_per_hour:
+            rec[0] = datetime.datetime.utcfromtimestamp(rec[0])
+            t = rec[0].strftime('%H:%M:%S')
 
         logging.debug('load data done')
     except sqlite3.OperationalError:
@@ -159,7 +198,7 @@ def init_display():
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
     logging.info('display size: %d x %d' % size)
-    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    screen = pygame.display.set_mode(size,  pygame.FULLSCREEN)
     # Clear the screen to start
     screen.fill(BLACK)
     # Initialise font support
@@ -174,12 +213,18 @@ def make_pie(values, labels, title):
     """
     logging.debug('make_pie(...,...,%s)' % title)
     inches = size[1] / 100.0
-    fig = pylab.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
+    fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
     ax = fig.add_subplot(111)
     ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'white'})
     ax.set_title(title, color='white', size='xx-large', weight='bold')
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='lower left')
+    legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='best')
+    legend.get_frame().set_color((0, 0, 0, 0))
+    legend.get_frame().set_edgecolor('w')
+    legend.get_title().set_color('w')
+    for text in legend.get_texts():
+        plt.setp(text, color='w')
+
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
@@ -281,11 +326,68 @@ def qso_rates_table():
     return draw_table(operator_qso_rates, "QSO/Hour Rates")
 
 
+def qso_rates_chart():
+    """
+    make the qsos per hour per band chart
+    returns a pygame surface
+    """
+    title = 'QSOs per Hour by Band'
+    qso_counts = [[], [], [], [], [], [], [], [], [], []]
+
+    for qpm in qsos_per_hour:
+        for i in range(0, len(BANDS_LIST)):
+            c = qpm[i]
+            cl = qso_counts[i]
+            cl.append(c)
+
+    logging.debug('make_plot(...,...,%s)' % title)
+    inches = size[1] / 100.0
+    fig = plt.Figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='black')
+    ax = fig.add_subplot(111, axisbg='black')
+    ax.set_title(title, color='white', size='xx-large', weight='bold')
+    dates = matplotlib.dates.date2num(qso_counts[0])
+    colors = ['', 'r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
+    for i in range(1, len(BANDS_LIST)):
+        if qsos_by_band[i]:
+            line, = ax.plot_date(dates, qso_counts[i], fmt='-', xdate=True, ydate=False, label=BANDS_TITLE[i])
+            line.set_color(colors[i])
+            line.set_linewidth(2.0)
+    ax.grid(True)
+    legend = ax.legend(loc='best', ncol=2)
+    legend.get_frame().set_color((0, 0, 0, 0))
+    legend.get_frame().set_edgecolor('w')
+    for text in legend.get_texts():
+        plt.setp(text, color='w')
+    ax.spines['left'].set_color('w')
+    ax.spines['right'].set_color('w')
+    ax.spines['top'].set_color('w')
+    ax.spines['bottom'].set_color('w')
+    ax.tick_params(axis='y', colors='w')
+    ax.tick_params(axis='x', colors='w')
+    ax.set_ylabel('QSO Rate/Hour', color='w', size='x-large', weight='bold')
+    ax.set_xlabel('UTC Hour', color='w', size='x-large', weight='bold')
+    hour_locator = HourLocator()
+    hour_formatter = DateFormatter('%H')
+    ax.xaxis.set_major_locator(hour_locator)
+    ax.xaxis.set_major_formatter(hour_formatter)
+
+    canvas = agg.FigureCanvasAgg(fig)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.tostring_rgb()
+    plt.close(fig)
+
+    canvas_size = canvas.get_width_height()
+    surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
+
+    return surf
+
+
 def draw_clock():
     """
     add the time of day in GMT to the lower right of the screen
     """
-    font_size = 100
+    font_size = STATUS_LINE_HEIGHT
     font = pygame.font.Font(None, font_size)
     text = font.render(time.strftime('%H:%M:%S', time.gmtime()), True, GREEN, BLACK)
     textpos = text.get_rect()
@@ -453,6 +555,7 @@ def refresh_data():
     images[QSO_STATIONS_IMAGE_INDEX] = qso_stations_graph()
     images[QSO_BANDS_IMAGE_INDEX] = qso_bands_graph()
     images[QSO_MODES_IMAGE_INDEX] = qso_modes_graph()
+    images[QSO_RATE_CHART_IMAGE_INDEX] = qso_rates_chart()
     logging.debug('images refreshed')
 
 
@@ -471,7 +574,10 @@ def main():
 
     logging.debug('display setup')
 
-    refresh_data()
+    thread = UpdateThread()
+    thread.start()
+
+    images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
 
     next_chart()
 
