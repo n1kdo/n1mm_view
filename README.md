@@ -36,13 +36,13 @@ Currently, it supports the following displays:
 
 ### Installation
 
-See `INSTALL_RASPI.md` for information to install n1mm_view on a Raspberry Pi.
+See [INSTALL_RASPI.md](INSTALL_RASPI.md) for information to install n1mm_view on a Raspberry Pi.
 
 ### License:
 
-This software is licensed under the terms of the "Simplified BSD license", see `LICENSE`.
+This software is licensed under the terms of the "Simplified BSD license", see [LICENSE](LICENSE).
 
-Copyright 2016, Jeffrey B. Otterson, N1KDO
+Copyright 2016, Jeffrey B. Otterson, N1KDO  
 All Rights Reserved
 
 ### To Do
