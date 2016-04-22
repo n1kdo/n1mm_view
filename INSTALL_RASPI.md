@@ -5,7 +5,8 @@
 1. open terminal window
 1. `$ sudo apt-get update` -- this takes about 2 minutes
 1. `$ sudo apt-get upgrade` -- this takes a while minutes.  Get a beer.
-1. `$ sudo apt-get install python-matplotlib` -- this takes a couple minutes.  
+1. `$ sudo apt-get install python-matplotlib` -- this takes a couple minutes. 
+1. `$ sudo apt-get install python-mpltoolkits.basemap` -- this takes a few minutes.
 1. `$ git clone https://github.com/n1kdo/n1mm_view.git`
 1. `$ cd n1mm_view`
 1. `$ ls`
