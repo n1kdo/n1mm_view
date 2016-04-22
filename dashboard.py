@@ -201,7 +201,12 @@ def init_display():
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
     logging.info('display size: %d x %d' % size)
-    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    if driver != 'directx':  # debugging hack runs in a window on Windows
+        screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    else:
+        size = (1680, 1050)
+        screen = pygame.display.set_mode(size)
+
     # Clear the screen to start
     screen.fill(BLACK)
     # Initialise font support
@@ -374,14 +379,16 @@ def qso_rates_chart():
 
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
-        colors = ['', 'r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
-        for i in range(1, len(BANDS_LIST)):
-            if qsos_by_band[i]:
-                line, = ax.plot_date(dates, qso_counts[i], fmt='-', xdate=True, ydate=False, label=BANDS_TITLE[i])
-                line.set_color(colors[i])
-                line.set_linewidth(2.0)
+        colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
+        # ax.set_autoscalex_on(True)
+        ax.set_xlim([dates[0], dates[-1]])
+
+        ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
+                     qso_counts[7], qso_counts[8], qso_counts[9], labels=BANDS_TITLE[1:], colors=colors)
+        #       line.set_color(colors[i])
+        #       line.set_linewidth(2.0)
         ax.grid(True)
-        legend = ax.legend(loc='best', ncol=2)
+        legend = ax.legend(loc='best', ncol=len(BANDS_TITLE)-1)
         legend.get_frame().set_color((0, 0, 0, 0))
         legend.get_frame().set_edgecolor('w')
         for text in legend.get_texts():
