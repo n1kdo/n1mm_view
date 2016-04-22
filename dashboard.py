@@ -29,7 +29,7 @@ __license__ = 'Simplified BSD'
 
 database_name = 'n1mm_view.db'
 
-DISPLAY_DWELL_TIME = 5
+DISPLAY_DWELL_TIME = 10
 DATA_DWELL_TIME = 60
 
 GREEN = pygame.Color('#00ff00')
@@ -39,6 +39,7 @@ GRAY = pygame.Color('#cccccc')
 
 view_font = None
 view_font_height = 0
+bigger_font = None
 image_index = 0
 qso_operators = []
 qso_stations = []
@@ -54,14 +55,15 @@ size = None
 graph_size = None
 
 LOGO_IMAGE_INDEX = 0
-QSO_COUNTS_IMAGE_INDEX = 1
-QSO_RATES_IMAGE_INDEX = 2
-QSO_OPERATORS_IMAGE_INDEX = 3
-QSO_STATIONS_IMAGE_INDEX = 4
-QSO_BANDS_IMAGE_INDEX = 5
-QSO_MODES_IMAGE_INDEX = 6
-QSO_RATE_CHART_IMAGE_INDEX = 7
-IMAGE_COUNT = 8
+QSO_COUNTS_TABLE_INDEX = 1
+QSO_RATES_TABLE_INDEX = 2
+QSO_OPERATORS_PIE_INDEX = 3
+QSO_OPERATORS_TABLE_INDEX = 4
+QSO_STATIONS_PIE_INDEX = 5
+QSO_BANDS_PIE_INDEX = 6
+QSO_MODES_PIE_INDEX = 7
+QSO_RATE_CHART_IMAGE_INDEX = 8
+IMAGE_COUNT = 9
 images = [None] * IMAGE_COUNT
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
@@ -174,7 +176,7 @@ def init_display():
     """
     set up the pygame display, full screen
     """
-    global screen, size, graph_size, view_font, view_font_height
+    global screen, size, graph_size, view_font, view_font_height, bigger_font
 
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
@@ -205,7 +207,7 @@ def init_display():
     # Initialise font support
     pygame.font.init()
     view_font = pygame.font.Font('veraMoBd.ttf', 64)
-    # view_font = pygame.font.SysFont('monospace', 100)
+    bigger_font = pygame.font.SysFont('veraMoBd.ttf', 180)
     view_font_height = view_font.get_height()
     graph_size = (pygame.display.Info().current_w, pygame.display.Info().current_h - view_font_height)
     print '\n\n\n\n\n'
@@ -270,6 +272,20 @@ def qso_operators_graph():
         labels.append(d[0])
         values.append(d[1])
     return make_pie(values, labels, "QSOs by Operator")
+
+
+def qso_operators_table():
+    """
+    create the QSOs by Operators table
+    """
+    count = 0
+    cells = [['Operator', '# QSOs']]
+    for d in qso_operators:
+        cells.append(['%s' % d[0], '%5d' % d[1]])
+        count += 1
+        if count >= 5:
+            break
+    return draw_table(cells, "Top 5 Operators", bigger_font)
 
 
 def qso_stations_graph():
@@ -406,14 +422,16 @@ def draw_clock():
     screen.blit(text, textpos)
 
 
-def draw_table(cell_text, title):
+def draw_table(cell_text, title, font=None):
     """
     draw a table
     """
     logging.debug('draw_table(...,%s)' % title)
     font_size = 100
-    # font = pygame.font.Font(None, font_size)
-    table_font = view_font
+    if font is None:
+        table_font = view_font
+    else:
+        table_font = font
 
     text_y_offset = 4
     text_x_offset = 4
@@ -435,13 +453,21 @@ def draw_table(cell_text, title):
                 widest = text_width
             col_num += 1
 
+
+    header_width = table_font.size(title)[0]
     # cheat on column widths -- set all to the widest.
     # maybe someday I'll fix this to dynamically set each column width.  or something.
     column_width = widest
     row_height = table_font.get_height()
-    width = cols * column_width + line_width / 2
+    table_width = cols * column_width + line_width / 2
     height = (rows + 1) * row_height + line_width / 2
-    surf = pygame.Surface((width, height))
+    surface_width = table_width
+    x_offset = 0
+    if header_width > surface_width:
+        surface_width = header_width
+        x_offset = (header_width - table_width) / 2
+
+    surf = pygame.Surface((surface_width, height))
 
     surf.fill(BLACK)
     text_color = GRAY
@@ -452,22 +478,22 @@ def draw_table(cell_text, title):
     text = table_font.render(title, True, head_color)
     textpos = text.get_rect()
     textpos.y = 0
-    textpos.centerx = width / 2
+    textpos.centerx = surface_width / 2
     surf.blit(text, textpos)
 
     starty = row_height
-    origin = (0, row_height)
+    origin = (x_offset, row_height)
 
     # draw the grid
-    x = 0
+    x = x_offset
     y = starty
     for r in range(0, rows + 1):
         sp = (x, y)
-        ep = (x + width, y)
+        ep = (x + table_width, y)
         pygame.draw.line(surf, grid_color, sp, ep, line_width)
         y += row_height
 
-    x = 0
+    x = x_offset
     y = starty
     for c in range(0, cols + 1):
         sp = (x, y)
@@ -560,12 +586,13 @@ def refresh_data():
     global images
     logging.debug('refresh_data')
     load_data()
-    images[QSO_COUNTS_IMAGE_INDEX] = qso_summary_table()
-    images[QSO_RATES_IMAGE_INDEX] = qso_rates_table()
-    images[QSO_OPERATORS_IMAGE_INDEX] = qso_operators_graph()
-    images[QSO_STATIONS_IMAGE_INDEX] = qso_stations_graph()
-    images[QSO_BANDS_IMAGE_INDEX] = qso_bands_graph()
-    images[QSO_MODES_IMAGE_INDEX] = qso_modes_graph()
+    images[QSO_COUNTS_TABLE_INDEX] = qso_summary_table()
+    images[QSO_RATES_TABLE_INDEX] = qso_rates_table()
+    images[QSO_OPERATORS_PIE_INDEX] = qso_operators_graph()
+    images[QSO_OPERATORS_TABLE_INDEX] = qso_operators_table()
+    images[QSO_STATIONS_PIE_INDEX] = qso_stations_graph()
+    images[QSO_BANDS_PIE_INDEX] = qso_bands_graph()
+    images[QSO_MODES_PIE_INDEX] = qso_modes_graph()
     images[QSO_RATE_CHART_IMAGE_INDEX] = qso_rates_chart()
     logging.debug('images refreshed')
 
