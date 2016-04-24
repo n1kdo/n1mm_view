@@ -14,4 +14,8 @@ N1MM_BROADCAST_PORT = 12060
 N1MM_BROADCAST_ADDRESS = '192.168.1.255'
 """ n1mm+ log file name used by replayer """
 N1MM_LOG_FILE_NAME = '2015N4N.s3db'
+""" QTH Latitude """
+QTH_LATITUDE = 34.0109629
+""" QTH Longitude """
+QTH_LONGITUDE = -84.4616047
 

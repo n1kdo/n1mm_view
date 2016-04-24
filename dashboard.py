@@ -215,9 +215,6 @@ def init_display():
     bigger_font = pygame.font.SysFont('veraMoBd.ttf', 180)
     view_font_height = view_font.get_height()
     graph_size = (pygame.display.Info().current_w, pygame.display.Info().current_h - view_font_height)
-    print '\n\n\n\n\n'
-    print pygame.font.get_fonts()
-    print '\n\n\n\n\n'
 
 
 def make_pie(values, labels, title):
@@ -380,13 +377,12 @@ def qso_rates_chart():
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
         colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
+        labels = BANDS_TITLE[1:]
         # ax.set_autoscalex_on(True)
         ax.set_xlim([dates[0], dates[-1]])
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
-                     qso_counts[7], qso_counts[8], qso_counts[9], labels=BANDS_TITLE[1:], colors=colors)
-        #       line.set_color(colors[i])
-        #       line.set_linewidth(2.0)
+                     qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors)
         ax.grid(True)
         legend = ax.legend(loc='best', ncol=len(BANDS_TITLE)-1)
         legend.get_frame().set_color((0, 0, 0, 0))
