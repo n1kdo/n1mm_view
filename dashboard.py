@@ -47,6 +47,7 @@ qso_band_modes = []
 operator_qso_rates = []
 qsos_per_hour = []
 qsos_by_band = []
+qsos_by_section = []
 first_qso_time = 0
 last_qso_time = 0
 
@@ -67,7 +68,7 @@ IMAGE_COUNT = 9
 images = [None] * IMAGE_COUNT
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 logging.Formatter.converter = time.gmtime
 
 
@@ -87,6 +88,7 @@ def load_data():
         logging.debug('database connected')
 
         # load qso_operators
+        logging.debug('Load QSOs by Operator')
         qso_operators = []
         cursor.execute('SELECT name, qso_count FROM qso_operator JOIN operator\n'
                        'ON qso_operator.operator_id = operator.id ORDER BY qso_count DESC;')
@@ -94,6 +96,7 @@ def load_data():
             qso_operators.append((row[0], row[1]))
 
         # load qso_stations
+        logging.debug('Load QSOs by Station')
         qso_stations = []
         cursor.execute('SELECT name, qso_count FROM qso_station JOIN station\n'
                        'ON qso_station.station_id = station.id ORDER BY qso_count DESC;')
@@ -101,6 +104,7 @@ def load_data():
             qso_stations.append((row[0], row[1]))
 
         # load qso_band_modes
+        logging.debug('Load QSOs by Band & Mode')
         qso_band_modes = []
         cursor.execute('SELECT band_mode_id, qso_count FROM qso_band_mode;')
         for row in cursor:
@@ -113,6 +117,7 @@ def load_data():
         slices_per_hour = 60 / slice_minutes
 
         # get timestamp from the first record in the database
+        logging.debug('Loading first and last QSO timestamps')
         cursor.execute('SELECT timestamp FROM qso_log ORDER BY id LIMIT 1')
         first_qso_time = int(time.time()) - 60
         for row in cursor:
@@ -126,6 +131,8 @@ def load_data():
 
         start_time = last_qso_time - slice_minutes * 60
 
+        # load QSOs per Hour by Operator
+        logging.debug('Load QSOs per Hour by Operator')
         cursor.execute('SELECT operator.name, COUNT(operator_id) qso_count FROM qso_log\n'
                        'JOIN operator ON operator.id = operator_id\n'
                        'WHERE timestamp >= ? AND timestamp <= ?\n'
@@ -138,14 +145,14 @@ def load_data():
             operator_qso_rates.append([row[0], '%4d' % rate])
         operator_qso_rates.append(['Total', '%4d' % total])
 
-
-
         qsos_per_hour = []
         qsos_by_band = [0] * len(BANDS_LIST)
         slice_minutes = 15
         slices_per_hour = 60 / slice_minutes
         window_seconds = slice_minutes * 60
 
+        # load QSO rates per Hour by Band
+        logging.debug('Load QSOs per Hour by Band')
         cursor.execute('SELECT timestamp / %d * %d AS ts, band_id, COUNT(*) AS qso_count \n'
                        'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
         for row in cursor:
@@ -164,6 +171,13 @@ def load_data():
         for rec in qsos_per_hour:
             rec[0] = datetime.datetime.utcfromtimestamp(rec[0])
             t = rec[0].strftime('%H:%M:%S')
+
+        # load QSOs by Section
+        logging.debug('Load QSOs by Section')
+        qsos_by_section = []
+        cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section ORDER BY section;')
+        for row in cursor:
+            qsos_by_section.append((row[0], row[1]))
 
         logging.debug('load data done')
     except sqlite3.OperationalError:
@@ -647,8 +661,10 @@ def main():
                 pygame.display.flip()
             elif event.type == pygame.KEYDOWN:
                 if event.key == ord('q'):
+                    logging.debug('Q key pressed')
                     run = False
                 elif event.key == ord('n'):
+                    logging.debug('N key pressed')
                     next_chart()
                     display_update_timer = DISPLAY_DWELL_TIME
                     pygame.display.flip()

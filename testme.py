@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import pygame
+import random
 import sqlite3
 import time
 
@@ -14,7 +15,6 @@ matplotlib.use('Agg')
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.dates import HourLocator, DateFormatter
 
 #from matplotlib.patches import Polygon
 #from matplotlib.collections import PatchCollection
@@ -22,6 +22,24 @@ from mpl_toolkits.basemap import Basemap
 
 from n1mm_view_constants import *
 from n1mm_view_config import *
+
+# override for testing:
+CONTEST_SECTIONS = {
+    'AB': 'Alberta',
+    'BC': 'British Columbia',
+    'GTA': 'Greater Toronto Area',
+    'MAR': 'Maritime',
+    'MB': 'Manitoba',
+    'NL': 'Newfoundland/Labrador',
+    'NT': 'Northern Territories',
+    'ONE': 'Ontario East',
+    'ONN': 'Ontario North',
+    'ONS': 'Ontario South',
+    'QC': 'Quebec',
+    'SK': 'Saskatchewan',
+}
+
+ZZsections = ['AB', 'BC', 'GTA', 'MAR', 'MB','NL', 'NT', 'ONE', 'ONN', 'ONS', 'QC', 'SK']
 
 GREEN = pygame.Color('#00ff00')
 BLACK = pygame.Color('#000000')
@@ -36,11 +54,18 @@ qso_band_modes = []
 operator_qso_rates = []
 qsos_per_hour = []
 qsos_by_band = []
+qsos_by_section = []
 first_qso_time = 0
 last_qso_time = 0
 
+my_map = None
+
 size = None
 graph_size = None
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.DEBUG)
+logging.Formatter.converter = time.gmtime
 
 
 def init_display():
@@ -108,7 +133,7 @@ def load_data():
     """
     global cursor
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
-    global qsos_per_hour, qsos_by_band, first_qso_time, last_qso_time
+    global qsos_per_hour, qsos_by_band, qsos_by_section, first_qso_time, last_qso_time
 
     # load qso_operators
     qso_operators = []
@@ -194,65 +219,107 @@ def load_data():
         # print '%s %3d %3d %3d %3d %3d %3d %3d %3d %3d' % (t, rec[1], rec[2], rec[3], rec[4], rec[5], rec[6], rec[7], rec[8], rec[9])
     #print len(qsos_per_hour)
 
+    # load QSOs by Section
+    qsos_by_section = []
+    cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section ORDER BY section;')
+    for row in cursor:
+        qsos_by_section.append([row[0], row[1]])
+    # print qsos_by_section
 
-def draw_map():
-    title = 'Sections Worked'
-    width_inches = graph_size[0] / 100.0
-    height_inches = graph_size[1] / 100.0
-    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
-    ax = fig.add_subplot(111, axisbg='#888888')
-    ax.set_title(title, color='white', size='xx-large', weight='bold')
 
+def update_qsos_by_section():
+    global qsos_by_section
+    for r in qsos_by_section:
+        rr = random.randint(0, r[1])
+        rr -= r[1] / 2
+        if rr < 0:
+            rr = 0
+        r[1] += rr
+
+
+def create_map():
+    logging.debug('create_map() -- Please wait while I create the world.')
+    global my_map
     degrees_width = 118.0
     degrees_height = 55.0
     center_lat = 44.5
     center_lon = -110.0
-    my_map = Basemap(ax=ax,
-                     projection='merc',  # default is cyl
-                     ellps='WGS84',
-                     lat_0=center_lat, lon_0=center_lon,
-                     llcrnrlat=center_lat - degrees_height / 2.0,
-                     llcrnrlon=center_lon - degrees_width / 2.0,
-                     urcrnrlat=center_lat + degrees_height / 2.0,
-                     urcrnrlon=center_lon + degrees_width / 2.0,
-                     resolution='i',  # 'c', 'l', 'i', 'h', 'f'
-                     )
+    my_map = Basemap(  # ax=ax,
+        projection='merc',  # default is cyl
+        ellps='WGS84',
+        lat_0=center_lat, lon_0=center_lon,
+        llcrnrlat=center_lat - degrees_height / 2.0,
+        llcrnrlon=center_lon - degrees_width / 2.0,
+        urcrnrlat=center_lat + degrees_height / 2.0,
+        urcrnrlon=center_lon + degrees_width / 2.0,
+        resolution='i',  # 'c', 'l', 'i', 'h', 'f'
+    )
+    logging.debug('created map')
+    for section_name in CONTEST_SECTIONS.keys():
+        my_map.readshapefile('shapes/%s' % section_name, section_name, drawbounds=False)
 
+    logging.debug('loaded section shapes')
+
+
+def draw_map():
+    logging.debug('draw_map()')
+    title = 'Sections Worked'
+    width_inches = graph_size[0] / 100.0
+    height_inches = graph_size[1] / 100.0
+    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
+    ax = fig.add_subplot(111, axisbg='#000033')
+    ax.set_title(title, color='white', size='xx-large', weight='bold')
+
+    if my_map == None:
+        create_map()
+
+    logging.debug('setting basemap axis')
+    my_map.ax = ax
     # my_map.drawcoastlines(color='white', linewidth=0.5)
     # my_map.drawcountries(color='white', linewidth=0.5)
     # my_map.drawstates(color='white')
-    my_map.drawmapboundary(fill_color='#000033')
+    # my_map.drawmapboundary(fill_color='#000033')
     my_map.fillcontinents(color='#336633', lake_color='#000033')
 
     # mark our QTH
     x,y = my_map(QTH_LONGITUDE, QTH_LATITUDE)
     my_map.plot(x, y, 'o', color='r')
+    my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
 
-    # shapes
-    sections = ['AB', 'BC', 'GTA', 'MAR', 'MB','NL', 'NT', 'ONE', 'ONN', 'ONS', 'QC', 'SK']
+    logging.debug('setting shapes')
+    num_colors = 16
+    step_size = 10
 
-    num_sections = len(sections)
-    color_map = plt.get_cmap('Dark2')
-    color_palette = color_map(1. * np.arange(num_sections) / num_sections)
+    # plt.register_cmap(name='plasma', cmap=matplotlib.cm.plasma)
+    # cm = plt.get_cmap('plasma')
+    cm = plt.get_cmap('summer')
+    color_palette = cm(1.0 * np.arange(num_colors) / num_colors)
 
-    section_shapes = {}
-    for section_name in sections:
-        my_map.readshapefile('../shapes/CanadaSections/x/%s' % section_name, section_name, drawbounds=False)
-        shape = my_map.__dict__.get(section_name)
-        patches = []
-        for ss in shape:
-            patches.append(matplotlib.patches.Polygon(np.array(ss), True))
-        section_shapes[section_name] = matplotlib.collections.PatchCollection(patches, facecolor='m', edgecolor='k', linewidths=0.25, zorder=2)
+    # applying choropleth
+    logging.debug('applying choropleth')
+    for row in qsos_by_section:
+        section_name = row[0]
+        qsos = row[1]
+        shape = my_map.__dict__.get(section_name)  # probably bad style
+        if shape is not None:
+            if qsos == 0:
+                color_index = 0
+                section_color = '#336633'
+            else:
+                color_index = qsos / step_size + 1
+                if color_index >= num_colors:
+                    color_index = num_colors - 1
+                section_color = color_palette[color_index]
+            print '%s %d %d' % (section_name, qsos, color_index)
 
-    cidx = 0
-    for section_name in sections:
-        pc = section_shapes[section_name]
-        pc.set_facecolor(color_palette[cidx])
-        ax.add_collection(pc)
-        cidx += 1
+            patches = []
+            for ss in shape:
+                patches.append(matplotlib.patches.Polygon(np.array(ss), True))
+            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='k', linewidths=0.25, zorder=2)
+            patch_collection.set_facecolor(section_color)
+            ax.add_collection(patch_collection)
 
-    my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25)
-
+    logging.debug('converting to pygame surface')
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
@@ -261,26 +328,8 @@ def draw_map():
 
     canvas_size = canvas.get_width_height()
     surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
-
+    logging.debug('draw_map() done')
     return surf
-
-
-def junk():
-    print "calling basemap"
-    m = Basemap(
-        projection='tmerc',
-        lon_0=-85.,
-        lat_0=45.,
-        ellps = 'WGS84',
-        llcrnrlon=-160.,llcrnrlat=25.,urcrnrlon=-60.,urcrnrlat=75.,
-        lat_ts=0,
-        resolution='i',
-        suppress_ticks=True)
-    m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='#ddaa66',lake_color='aqua')
-    m.drawcoastlines()
-    print "called basemap"
-    m.drawmapboundary(color='w')
 
 
 def load_image(name):
@@ -300,17 +349,6 @@ def show_graph(surf):
     screen.blit(surf, (xoffset, yoffset))
 
 
-def wait_for_key():
-    run = True
-    while run:
-        for event in [pygame.event.wait()] + pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                break
-            elif event.type == pygame.KEYDOWN:
-                run = False
-
-
 def main():
     global db, cursor
     global size
@@ -319,13 +357,33 @@ def main():
     cursor = db.cursor()
 
     load_data()
+
+    create_map()
+
     init_display()
-    # show_graph(x())
-    #show_graph(load_image('logo.png'))
+
     show_graph(draw_map())
+
     pygame.display.flip()
-    wait_for_key()
+
+    run = True
+    pygame.time.set_timer(pygame.USEREVENT, 10000)
+
+    while run:
+        for event in [pygame.event.wait()] + pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                break
+            elif event.type == pygame.KEYDOWN:
+                run = False
+            elif event.type == pygame.USEREVENT:
+                logging.debug('TICK!')
+                update_qsos_by_section()
+                show_graph(draw_map())
+                pygame.display.flip()
+
     pygame.display.quit()
+
     db.close()
 
 
