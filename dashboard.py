@@ -32,7 +32,11 @@ database_name = 'n1mm_view.db'
 DISPLAY_DWELL_TIME = 10
 DATA_DWELL_TIME = 60
 
-GREEN = pygame.Color('#00ff00')
+RED = pygame.Color('#ff0000')
+GREEN = pygame.Color('#33cc33')
+BLUE = pygame.Color('#3333cc')
+YELLOW = pygame.Color('#cccc00')
+CYAN = pygame.Color('#00cccc')
 BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
 GRAY = pygame.Color('#cccccc')
@@ -51,6 +55,12 @@ qsos_by_section = []
 first_qso_time = 0
 last_qso_time = 0
 
+crawl_messages = [''] * 10
+crawl_message_colors = [(GREEN, BLACK)] * 10
+crawl_message_surfaces = None
+crawl_message_first_x = 0
+crawl_message_last_added_index = -1
+
 screen = None
 size = None
 graph_size = None
@@ -68,7 +78,7 @@ IMAGE_COUNT = 9
 images = [None] * IMAGE_COUNT
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 logging.Formatter.converter = time.gmtime
 
 
@@ -81,6 +91,7 @@ def load_data():
 
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
     global qsos_per_hour, qsos_by_band, first_qso_time, last_qso_time
+    global crawl_messages
 
     try:
         db = sqlite3.connect(database_name)
@@ -124,10 +135,17 @@ def load_data():
             first_qso_time = row[0]
 
         # get timestamp from the last record in the database
-        cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
+        cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
+                       'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
+                       'ORDER BY qso_log.id DESC LIMIT 1')
         last_qso_time = int(time.time()) - 60
+        message = ''
         for row in cursor:
             last_qso_time = row[0]
+            message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], BANDS_TITLE[row[5]], row[4],
+                                        datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
+        crawl_messages[3] = message
+        crawl_message_colors[3] = (CYAN, BLACK)
 
         start_time = last_qso_time - slice_minutes * 60
 
@@ -393,7 +411,10 @@ def qso_rates_chart():
         colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
         labels = BANDS_TITLE[1:]
         # ax.set_autoscalex_on(True)
-        ax.set_xlim([dates[0], dates[-1]])
+        start_date = matplotlib.dates.date2num(EVENT_START_TIME)
+        end_date =  matplotlib.dates.date2num(EVENT_END_TIME)
+        # ax.set_xlim([dates[0], dates[-1]])
+        ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
                      qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors)
@@ -426,17 +447,6 @@ def qso_rates_chart():
     surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
 
     return surf
-
-
-def draw_clock():
-    """
-    add the time of day in GMT to the lower right of the screen
-    """
-    text = view_font.render(time.strftime('%H:%M:%S', time.gmtime()), True, GREEN, BLACK)
-    textpos = text.get_rect()
-    textpos.bottom = size[1] - 1
-    textpos.right = size[0] - 1
-    screen.blit(text, textpos)
 
 
 def draw_table(cell_text, title, font=None):
@@ -591,9 +601,79 @@ def next_chart():
     image_index += 1
     if image_index >= IMAGE_COUNT:
         image_index = 0
-    draw_clock()
-    logging.debug('next_chart - flip()')
-    pygame.display.flip()
+    logging.debug('next_chart() done')
+
+
+def deltatime_to_string(delta_time):
+    seconds = delta_time.total_seconds()
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    if days != 0:
+        return '%d days, %02d:%02d:%02d' % (days, hours, minutes, seconds)
+    else:
+        return '%02d:%02d:%02d' % (hours, minutes, seconds)
+
+
+def update_crawl_message():
+    now = datetime.datetime.utcnow()
+    crawl_messages[0] = EVENT_NAME
+    crawl_message_colors[0] = (BLUE, BLACK)
+    crawl_messages[1] = datetime.datetime.strftime(now, '%H:%M:%S')
+    if now < EVENT_START_TIME:
+        delta = EVENT_START_TIME - now
+        crawl_messages[2] = 'The Contest starts in ' + deltatime_to_string(delta)
+        crawl_message_colors[2] = (GREEN, BLACK)
+    elif now < EVENT_END_TIME:
+        delta = EVENT_END_TIME - now
+        crawl_messages[2] = 'The contest ends in ' + deltatime_to_string(delta)
+        crawl_message_colors[2] = (YELLOW, BLACK)
+    else:
+        crawl_messages[2] = 'The contest is over.'
+        crawl_message_colors[2] = (RED, BLACK)
+
+
+def crawl_message():
+    global crawl_message_surfaces
+    global crawl_message_first_x
+    global crawl_message_last_added_index
+
+    if crawl_message_surfaces is None:
+        crawl_message_surfaces = []
+        crawl_message_surfaces.append(view_font.render(' ' + crawl_messages[0] + ' ', True,
+                                                       crawl_message_colors[0][0], crawl_message_colors[0][1]))
+        crawl_message_first_x = size[0]
+        crawl_message_last_added_index = 0
+
+    crawl_message_first_x -= 1
+    rect = crawl_message_surfaces[0].get_rect()
+    if crawl_message_first_x + rect.width < 0:
+        crawl_message_surfaces = crawl_message_surfaces[1:]
+        crawl_message_first_x = 0
+    x = crawl_message_first_x
+    for surf in crawl_message_surfaces:
+        rect = surf.get_rect()
+        x = x + rect.width
+    while x < size[0]:
+        crawl_message_last_added_index += 1
+        if crawl_message_last_added_index >= len(crawl_messages):
+            crawl_message_last_added_index = 0
+        if crawl_messages[crawl_message_last_added_index] != '':
+            surf = view_font.render(' ' + crawl_messages[crawl_message_last_added_index] + ' ', True,
+                                    crawl_message_colors[crawl_message_last_added_index][0],
+                                    crawl_message_colors[crawl_message_last_added_index][1])
+            rect = surf.get_rect()
+            crawl_message_surfaces.append(surf)
+            x += rect.width
+    x = crawl_message_first_x
+    for surf in crawl_message_surfaces:
+        rect = surf.get_rect()
+        rect.bottom = size[1] - 1
+        rect.left = x
+        screen.blit(surf, rect)
+        x += rect.width
+        if x >= size[0]:
+            break
 
 
 def refresh_data():
@@ -634,9 +714,13 @@ def main():
 
     images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
 
+    update_crawl_message()
+
     next_chart()
 
-    pygame.time.set_timer(pygame.USEREVENT, 1000)
+    milliseconds = 0
+    update_time = 20
+    pygame.time.set_timer(pygame.USEREVENT, update_time)
     run = True
 
     display_update_timer = DISPLAY_DWELL_TIME
@@ -648,16 +732,21 @@ def main():
                 run = False
                 break
             elif event.type == pygame.USEREVENT:
-                data_update_timer -= 1
-                if data_update_timer < 1:
-                    thread = UpdateThread()
-                    thread.start()
-                    data_update_timer = DATA_DWELL_TIME
-                display_update_timer -= 1
-                if display_update_timer < 1:
-                    display_update_timer = DISPLAY_DWELL_TIME
-                    next_chart()
-                draw_clock()
+                milliseconds += update_time
+                if milliseconds >= 1000:
+                    # one second tick
+                    milliseconds = 0
+                    data_update_timer -= 1
+                    if data_update_timer < 1:
+                        thread = UpdateThread()
+                        thread.start()
+                        data_update_timer = DATA_DWELL_TIME
+                    display_update_timer -= 1
+                    if display_update_timer < 1:
+                        display_update_timer = DISPLAY_DWELL_TIME
+                        next_chart()
+                    update_crawl_message()
+                crawl_message()
                 pygame.display.flip()
             elif event.type == pygame.KEYDOWN:
                 if event.key == ord('q'):
@@ -667,7 +756,7 @@ def main():
                     logging.debug('N key pressed')
                     next_chart()
                     display_update_timer = DISPLAY_DWELL_TIME
-                    pygame.display.flip()
+                    #pygame.display.flip()
 
     pygame.time.set_timer(pygame.USEREVENT, 0)
 

@@ -2,12 +2,14 @@
 this file contains configuration values for n1mm_view.
 If I did this right, this should be the only thing a user needs to customize.
 """
+import datetime
+
 """ Name of the event/contest """
 EVENT_NAME = 'N4N Field Day'
 """ start time of the event/contest in YYYY-MM-DD hh:mm:ss format """
-EVENT_START_TIME = '2015-06-27 18:00:00'
+EVENT_START_TIME = datetime.datetime.strptime('2015-06-27 18:00:00', '%Y-%m-%d %H:%M:%S')
 """ end time of the event/contest """
-EVENT_END_TIME = '2015-06-28 17:59:59'
+EVENT_END_TIME = datetime.datetime.strptime('2015-06-28 17:59:59', '%Y-%m-%d %H:%M:%S')
 """ port number used by N1MM+ for UDP broadcasts """
 N1MM_BROADCAST_PORT = 12060
 """ broadcast IP address, used by log replayer """
