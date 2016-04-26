@@ -9,6 +9,7 @@ import logging
 import os
 import pygame
 import sqlite3
+import sys
 import time
 import threading
 
@@ -90,7 +91,7 @@ def load_data():
     db = None
 
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
-    global qsos_per_hour, qsos_by_band, first_qso_time, last_qso_time
+    global qsos_per_hour, qsos_by_band, qsos_by_section, first_qso_time, last_qso_time
     global crawl_messages
 
     try:
@@ -101,25 +102,25 @@ def load_data():
         # load qso_operators
         logging.debug('Load QSOs by Operator')
         qso_operators = []
-        cursor.execute('SELECT name, qso_count FROM qso_operator JOIN operator\n'
-                       'ON qso_operator.operator_id = operator.id ORDER BY qso_count DESC;')
+        cursor.execute('SELECT name, COUNT(operator_id) AS qso_count \n'
+                       'FROM qso_log JOIN operator ON operator.id = operator_id \n'
+                       'GROUP BY operator_id ORDER BY qso_count desc;')
         for row in cursor:
             qso_operators.append((row[0], row[1]))
 
         # load qso_stations
         logging.debug('Load QSOs by Station')
         qso_stations = []
-        cursor.execute('SELECT name, qso_count FROM qso_station JOIN station\n'
-                       'ON qso_station.station_id = station.id ORDER BY qso_count DESC;')
+        cursor.execute('SELECT name, COUNT(station_id) AS qso_count \n'
+                       'FROM qso_log JOIN station ON station.id = station_id GROUP BY station_id;')
         for row in cursor:
             qso_stations.append((row[0], row[1]))
 
-        # load qso_band_modes
-        logging.debug('Load QSOs by Band & Mode')
-        qso_band_modes = []
-        cursor.execute('SELECT band_mode_id, qso_count FROM qso_band_mode;')
+        qso_band_modes = [[0] * 4 for _ in BANDS_LIST]
+
+        cursor.execute('SELECT COUNT(*), band_id, mode_id FROM qso_log GROUP BY band_id, mode_id;')
         for row in cursor:
-            qso_band_modes.append((row[0], row[1]))
+            qso_band_modes[row[1]][MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
 
         # calculate QSOs per hour rate for all active operators
         # the higher the slice_minutes number is, the better the
@@ -129,7 +130,7 @@ def load_data():
 
         # get timestamp from the first record in the database
         logging.debug('Loading first and last QSO timestamps')
-        cursor.execute('SELECT timestamp FROM qso_log ORDER BY id LIMIT 1')
+        cursor.execute('SELECT timestamp FROM qso_log ORDER BY timestamp LIMIT 1')
         first_qso_time = int(time.time()) - 60
         for row in cursor:
             first_qso_time = row[0]
@@ -137,7 +138,7 @@ def load_data():
         # get timestamp from the last record in the database
         cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
-                       'ORDER BY qso_log.id DESC LIMIT 1')
+                       'ORDER BY timestamp DESC LIMIT 1')
         last_qso_time = int(time.time()) - 60
         message = ''
         for row in cursor:
@@ -177,9 +178,7 @@ def load_data():
             if len(qsos_per_hour) == 0:
                 qsos_per_hour.append([0] * len(BANDS_LIST))
                 qsos_per_hour[-1][0] = row[0]
-                # print "inserted first row with timestamp %d" % row[0]
             while qsos_per_hour[-1][0] != row[0]:
-                # print 'the last rec ts is %d, but I need ts %d' %(recs[-1][0], row[0])
                 ts = qsos_per_hour[-1][0] + window_seconds
                 qsos_per_hour.append([0] * len(BANDS_LIST))
                 qsos_per_hour[-1][0] = ts
@@ -198,7 +197,8 @@ def load_data():
             qsos_by_section.append((row[0], row[1]))
 
         logging.debug('load data done')
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as error:
+        logging.exception(error)
         logging.warn('could not load data, database error')
     if db is not None:
         db.close()
@@ -232,13 +232,14 @@ def init_display():
 
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
-    logging.info('display size: %d x %d' % size)
     if driver != 'directx':  # debugging hack runs in a window on Windows
         screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     else:
+        logging.info('running in windowed mode')
         size = (1680, 1050)
         screen = pygame.display.set_mode(size)
 
+    logging.info('display size: %d x %d' % size)
     # Clear the screen to start
     screen.fill(BLACK)
     # Initialise font support
@@ -328,7 +329,8 @@ def qso_stations_graph():
     """
     labels = []
     values = []
-    for d in qso_stations:
+    # for d in qso_stations:
+    for d in sorted(qso_stations, key=lambda count: count[1], reverse=True):
         labels.append(d[0])
         values.append(d[1])
     return make_pie(values, labels, "QSOs by Station")
@@ -341,9 +343,8 @@ def qso_bands_graph():
     labels = []
     values = []
     band_data = [[band, 0] for band in range(0, len(BANDS_LIST))]
-    for qso_band_mode in qso_band_modes:
-        band = qso_band_mode[0] / 10
-        band_data[band][1] = qso_band_mode[1] + band_data[band][1]
+    for i in range(0,len(BANDS_LIST)):
+        band_data[i][1] = qso_band_modes[i][1] +  qso_band_modes[i][2] +  qso_band_modes[i][3]
 
     for bd in sorted(band_data[1:], key=lambda count: count[1], reverse=True):
         if bd[1] > 0:
@@ -358,10 +359,10 @@ def qso_modes_graph():
     """
     labels = []
     values = []
-    mode_data = [[mode, 0] for mode in range(0, len(MODES_LIST))]
-    for qso_band_mode in qso_band_modes:
-        mode = qso_band_mode[0] % 10
-        mode_data[mode][1] = qso_band_mode[1] + mode_data[mode][1]
+    mode_data = [[mode, 0] for mode in range(0, len(SIMPLE_MODES_LIST))]
+    for i in range(0,len(BANDS_LIST)):
+        for mode_num in range(1, len(SIMPLE_MODES_LIST)):
+            mode_data[mode_num][1] += qso_band_modes[i][mode_num]
 
     for md in sorted(mode_data[1:], key=lambda count: count[1], reverse=True):
         if md[1] > 0:
@@ -480,7 +481,6 @@ def draw_table(cell_text, title, font=None):
                 widest = text_width
             col_num += 1
 
-
     header_width = table_font.size(title)[0]
     # cheat on column widths -- set all to the widest.
     # maybe someday I'll fix this to dynamically set each column width.  or something.
@@ -556,12 +556,11 @@ def make_score_table():
     """
     cell_data = [[0 for m in SIMPLE_MODES_LIST] for b in BANDS_TITLE]
 
-    for qso_band_mode in qso_band_modes:
-        band = qso_band_mode[0] / 10
-        mode = qso_band_mode[0] % 10
-        cell_data[band][mode] = qso_band_mode[1]
-        cell_data[0][mode] += qso_band_mode[1]
-        cell_data[band][0] += qso_band_mode[1]
+    for band_num in range(1, len(BANDS_LIST)):
+        for mode_num in range(1,len(SIMPLE_MODES_LIST)):
+            cell_data[band_num][mode_num] = qso_band_modes[band_num][mode_num]
+            cell_data[band_num][0] += qso_band_modes[band_num][mode_num]
+            cell_data[0][mode_num] += qso_band_modes[band_num][mode_num]
 
     total = 0
     for c in cell_data[0][1:]:

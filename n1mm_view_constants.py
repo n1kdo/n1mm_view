@@ -24,6 +24,7 @@ MODES = {elem: index for index, elem in enumerate(MODES_LIST)}
 simplified modes for score reporting: CW, PHONE, DATA
 """
 SIMPLE_MODES_LIST = ['N/A', 'CW', 'PHONE', 'DATA']
+MODE_TO_SIMPLE_MODE = [0, 1, 2, 2, 2, 2, 3, 3, 3]
 SIMPLE_MODE_POINTS = [0, 2, 1, 2]  # n/a, CW, phone, digital
 SIMPLE_MODES = {'N/A': 0, 'CW': 1,
                 'AM': 2, 'FM': 2, 'LSB': 2, 'USB': 2,

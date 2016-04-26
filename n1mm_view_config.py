@@ -4,6 +4,8 @@ If I did this right, this should be the only thing a user needs to customize.
 """
 import datetime
 
+""" name of database file """
+DATABASE_FILENAME = 'n1mm_view.db'
 """ Name of the event/contest """
 EVENT_NAME = 'N4N Field Day'
 """ start time of the event/contest in YYYY-MM-DD hh:mm:ss format """
