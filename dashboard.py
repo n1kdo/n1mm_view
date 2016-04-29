@@ -311,10 +311,10 @@ def qso_operators_graph():
 
 def qso_operators_table():
     """
-    create the QSOs by Operators table
+    create the Top 5 QSOs by Operators table
     """
     count = 0
-    cells = [['Operator', '# QSOs']]
+    cells = [['Operator', 'QSOs']]
     for d in qso_operators:
         cells.append(['%s' % d[0], '%5d' % d[1]])
         count += 1
@@ -482,11 +482,8 @@ def draw_table(cell_text, title, font=None):
             col_num += 1
 
     header_width = table_font.size(title)[0]
-    # cheat on column widths -- set all to the widest.
-    # maybe someday I'll fix this to dynamically set each column width.  or something.
-    column_width = widest
+    table_width = sum(col_widths) + line_width / 2
     row_height = table_font.get_height()
-    table_width = cols * column_width + line_width / 2
     height = (rows + 1) * row_height + line_width / 2
     surface_width = table_width
     x_offset = 0
@@ -522,11 +519,14 @@ def draw_table(cell_text, title, font=None):
 
     x = x_offset
     y = starty
-    for c in range(0, cols + 1):
+    for cw in col_widths:
         sp = (x, y)
         ep = (x, y + height)
         pygame.draw.line(surf, grid_color, sp, ep, line_width)
-        x += column_width
+        x += cw
+    sp = (x, y)
+    ep = (x, y + height)
+    pygame.draw.line(surf, grid_color, sp, ep, line_width)
 
     y = starty + text_y_offset
     row_number = 0
@@ -535,8 +535,8 @@ def draw_table(cell_text, title, font=None):
         x = origin[0]
         column_number = 0
         for col in row:
+            x += col_widths[column_number]
             column_number += 1
-            x += column_width
             if row_number == 1 or column_number == 1:
                 text = table_font.render(col, True, head_color)
             else:
