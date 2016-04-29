@@ -26,9 +26,54 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=logging.DEBUG)
 logging.Formatter.converter = time.gmtime
 
-# globals.  fix this shit.
-operators = {}
-stations = {}
+
+class Operators:
+    operators = {}
+    db = None
+    cursor = None
+
+    def __init__(self, db, cursor):
+        self.db = db
+        self.cursor = cursor
+        # load operators
+        self.cursor.execute('SELECT id, name FROM operator;')
+        for row in self.cursor:
+            self.operators[row[1]] = row[0]
+
+    def lookup_operator_id(self, operator):
+        """
+        lookup the operator id for the supplied operator text.
+        if the operator is not found, create it.
+        """
+        oid = self.operators.get(operator)
+        if oid is None:
+            self.cursor.execute("insert into operator (name) values (?);", (operator,))
+            self.db.commit()
+            oid = self.cursor.lastrowid
+            self.operators[operator] = oid
+        return oid
+
+
+class Stations:
+    stations = {}
+    db = None
+    cursor = None
+
+    def __init__(self, db, cursor):
+        self.db = db
+        self.cursor = cursor
+        self.cursor.execute('SELECT id, name FROM station;')
+        for row in self.cursor:
+            self.stations[row[1]] = row[0]
+
+    def lookup_station_id(self, station):
+        sid = self.stations.get(station)
+        if sid is None:
+            self.cursor.execute("insert into station (name) values (?);", (station,))
+            self.db.commit()
+            sid = self.cursor.lastrowid
+            self.stations[station] = sid
+        return sid
 
 
 def create_tables(db, cursor):
@@ -68,47 +113,6 @@ def create_tables(db, cursor):
     db.commit()
 
 
-def load_data(db, cursor):
-    """
-    load data from the database tables
-    """
-    global operators, stations
-
-    # load operators
-    cursor.execute('SELECT id, name FROM operator;')
-    for row in cursor:
-        operators[row[1]] = row[0]
-
-    # load stations
-    cursor.execute('SELECT id, name FROM station;')
-    for row in cursor:
-        stations[row[1]] = row[0]
-
-
-def add_operator(db, cursor, operator):
-    """
-    add an operator to the operator table, and to the operator dict
-    """
-    global operators
-    cursor.execute("insert into operator (name) values (?);", (operator,))
-    db.commit()
-    oid = cursor.lastrowid
-    operators[operator] = oid
-    return oid
-
-
-def add_station(db, cursor, station):
-    """
-    add an station to the station table, and to the station dict
-    """
-    global stations
-    cursor.execute("insert into station (name) values (?);", (station,))
-    db.commit()
-    sid = cursor.lastrowid
-    stations[station] = sid
-    return sid
-
-
 def checksum(data):
     """
     generate a unique ID for each QSO.
@@ -138,12 +142,16 @@ def listener(db, cursor):
     except:
         logging.critical('Error connecting to the UDP stream.')
         return
+
+    operators = Operators(db, cursor)
+    stations = Stations(db, cursor)
+
     seen = set()
     run = True
     while run:
         try:
             udp_data = s.recv(BROADCAST_BUF_SIZE)
-            process_message(db, cursor, udp_data, seen)
+            process_message(db, cursor, operators, stations, udp_data, seen)
 
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt, shutting down...')
@@ -167,63 +175,17 @@ def get_from_dom(dom, name):
         return ''
 
 
-def lookup_band_id(band):
-    """
-    lookup the band ID number for the supplied band text
-    """
-    bid = BANDS.get(band)
-    if bid is None:
-        logging.warn('unknown band %s' % band)
-        return 0
-    return bid
-
-
-def lookup_mode_id(mode):
-    """
-    lookup the mode id for the supplied mode text
-    """
-    mid = MODES.get(mode)
-    if mid is None:
-        return 0
-    return mid
-
-
-def lookup_operator_id(db, cursor, operator):
-    """
-    lookup the operator id for the supplied operator text.
-    if the operator is not found, create it.
-    """
-    global operators
-    oid = operators.get(operator)
-    if oid is None:
-        oid = add_operator(db, cursor, operator)
-    return oid
-
-
-def lookup_station_id(db, cursor, station):
-    """
-    lookup the station id for the supplied station text.
-    if the station is not found, create it.
-    """
-    global stations
-    sid = stations.get(station)
-    if sid is None:
-        sid = add_station(db, cursor, station)
-    return sid
-
-
-def record_contact(db, cursor,
+def record_contact(db, cursor, operators, stations,
                    timestamp, mycall, band, mode, operator, station,
                    rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                    exchange, section, comment):
     """
     record the results of a contact_message
     """
-
-    band_id = lookup_band_id(band)
-    mode_id = lookup_mode_id(mode)
-    operator_id = lookup_operator_id(db, cursor, operator)
-    station_id = lookup_station_id(db, cursor, station)
+    band_id = Bands.get_band_number(band)
+    mode_id = Modes.get_mode_number(mode)
+    operator_id = operators.lookup_operator_id(operator)
+    station_id = stations.lookup_station_id(station)
 
     logging.info('QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s' % (
         time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
@@ -243,7 +205,7 @@ def record_contact(db, cursor,
     db.commit()
 
 
-def process_message(db, cursor, data, seen):
+def process_message(db, cursor, operators, stations, data, seen):
     """
     Process a N1MM+ contactinfo message
     """
@@ -274,7 +236,7 @@ def process_message(db, cursor, data, seen):
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
 
-        record_contact(db, cursor,
+        record_contact(db, cursor, operators, stations,
                        timestamp, mycall, band, mode, operator, station,
                        rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                        exchange, section, comment)
@@ -287,7 +249,6 @@ def main():
     db = sqlite3.connect(DATABASE_FILENAME)
     cursor = db.cursor()
     create_tables(db, cursor)
-    load_data(db, cursor)
     listener(db, cursor)
     db.close()
 

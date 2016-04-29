@@ -116,11 +116,11 @@ def load_data():
         for row in cursor:
             qso_stations.append((row[0], row[1]))
 
-        qso_band_modes = [[0] * 4 for _ in BANDS_LIST]
+        qso_band_modes = [[0] * 4 for _ in Bands.BANDS_LIST]
 
         cursor.execute('SELECT COUNT(*), band_id, mode_id FROM qso_log GROUP BY band_id, mode_id;')
         for row in cursor:
-            qso_band_modes[row[1]][MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
+            qso_band_modes[row[1]][Modes.MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
 
         # calculate QSOs per hour rate for all active operators
         # the higher the slice_minutes number is, the better the
@@ -143,7 +143,7 @@ def load_data():
         message = ''
         for row in cursor:
             last_qso_time = row[0]
-            message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], BANDS_TITLE[row[5]], row[4],
+            message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
                                         datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
         crawl_messages[3] = message
         crawl_message_colors[3] = (CYAN, BLACK)
@@ -165,7 +165,7 @@ def load_data():
         operator_qso_rates.append(['Total', '%4d' % total])
 
         qsos_per_hour = []
-        qsos_by_band = [0] * len(BANDS_LIST)
+        qsos_by_band = [0] * Bands.count()
         slice_minutes = 15
         slices_per_hour = 60 / slice_minutes
         window_seconds = slice_minutes * 60
@@ -176,11 +176,11 @@ def load_data():
                        'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
         for row in cursor:
             if len(qsos_per_hour) == 0:
-                qsos_per_hour.append([0] * len(BANDS_LIST))
+                qsos_per_hour.append([0] * Bands.count())
                 qsos_per_hour[-1][0] = row[0]
             while qsos_per_hour[-1][0] != row[0]:
                 ts = qsos_per_hour[-1][0] + window_seconds
-                qsos_per_hour.append([0] * len(BANDS_LIST))
+                qsos_per_hour.append([0] * Bands.count())
                 qsos_per_hour[-1][0] = ts
             qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
             qsos_by_band[row[1]] += row[2]
@@ -342,13 +342,13 @@ def qso_bands_graph():
     """
     labels = []
     values = []
-    band_data = [[band, 0] for band in range(0, len(BANDS_LIST))]
-    for i in range(0,len(BANDS_LIST)):
+    band_data = [[band, 0] for band in range(0, Bands.count())]
+    for i in range(0, Bands.count()):
         band_data[i][1] = qso_band_modes[i][1] +  qso_band_modes[i][2] +  qso_band_modes[i][3]
 
     for bd in sorted(band_data[1:], key=lambda count: count[1], reverse=True):
         if bd[1] > 0:
-            labels.append(BANDS_TITLE[bd[0]])
+            labels.append(Bands.BANDS_TITLE[bd[0]])
             values.append(bd[1])
     return make_pie(values, labels, "QSOs by Band")
 
@@ -359,14 +359,14 @@ def qso_modes_graph():
     """
     labels = []
     values = []
-    mode_data = [[mode, 0] for mode in range(0, len(SIMPLE_MODES_LIST))]
-    for i in range(0,len(BANDS_LIST)):
-        for mode_num in range(1, len(SIMPLE_MODES_LIST)):
+    mode_data = [[mode, 0] for mode in range(0, len(Modes.SIMPLE_MODES_LIST))]
+    for i in range(0, Bands.count()):
+        for mode_num in range(1, len(Modes.SIMPLE_MODES_LIST)):
             mode_data[mode_num][1] += qso_band_modes[i][mode_num]
 
     for md in sorted(mode_data[1:], key=lambda count: count[1], reverse=True):
         if md[1] > 0:
-            labels.append(SIMPLE_MODES_LIST[md[0]])
+            labels.append(Modes.SIMPLE_MODES_LIST[md[0]])
             values.append(md[1])
     return make_pie(values, labels, "QSOs by Mode")
 
@@ -395,7 +395,7 @@ def qso_rates_chart():
     data_valid = len(qsos_per_hour) != 0
 
     for qpm in qsos_per_hour:
-        for i in range(0, len(BANDS_LIST)):
+        for i in range(0, Bands.count()):
             c = qpm[i]
             cl = qso_counts[i]
             cl.append(c)
@@ -410,7 +410,7 @@ def qso_rates_chart():
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
         colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
-        labels = BANDS_TITLE[1:]
+        labels = Bands.BANDS_TITLE[1:]
         # ax.set_autoscalex_on(True)
         start_date = matplotlib.dates.date2num(EVENT_START_TIME)
         end_date =  matplotlib.dates.date2num(EVENT_END_TIME)
@@ -420,7 +420,7 @@ def qso_rates_chart():
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
                      qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors)
         ax.grid(True)
-        legend = ax.legend(loc='best', ncol=len(BANDS_TITLE)-1)
+        legend = ax.legend(loc='best', ncol=Bands.count() - 1)
         legend.get_frame().set_color((0, 0, 0, 0))
         legend.get_frame().set_edgecolor('w')
         for text in legend.get_texts():
@@ -554,10 +554,10 @@ def make_score_table():
     """
     create the score table from data
     """
-    cell_data = [[0 for m in SIMPLE_MODES_LIST] for b in BANDS_TITLE]
+    cell_data = [[0 for m in Modes.SIMPLE_MODES_LIST] for b in Bands.BANDS_TITLE]
 
-    for band_num in range(1, len(BANDS_LIST)):
-        for mode_num in range(1,len(SIMPLE_MODES_LIST)):
+    for band_num in range(1, Bands.count()):
+        for mode_num in range(1,len(Modes.SIMPLE_MODES_LIST)):
             cell_data[band_num][mode_num] = qso_band_modes[band_num][mode_num]
             cell_data[band_num][0] += qso_band_modes[band_num][mode_num]
             cell_data[0][mode_num] += qso_band_modes[band_num][mode_num]
@@ -572,7 +572,7 @@ def make_score_table():
     band_num = 0
     for row in cell_data[1:]:
         band_num += 1
-        row_text = ['%5s' % BANDS_TITLE[band_num]]
+        row_text = ['%5s' % Bands.BANDS_TITLE[band_num]]
 
         for col in row[1:]:
             row_text.append('%5d' % col)
