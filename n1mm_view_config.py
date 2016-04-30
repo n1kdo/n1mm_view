@@ -22,4 +22,9 @@ N1MM_LOG_FILE_NAME = '2015N4N.s3db'
 QTH_LATITUDE = 34.0109629
 """ QTH Longitude """
 QTH_LONGITUDE = -84.4616047
+""" number of seconds before automatic display change """
+DISPLAY_DWELL_TIME = 10
+""" number of seconds before automatic graph update from database """
+DATA_DWELL_TIME = 60
+
 

@@ -26,9 +26,6 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-DISPLAY_DWELL_TIME = 10
-DATA_DWELL_TIME = 60
-
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
 BLUE = pygame.Color('#3333cc')
@@ -75,6 +72,7 @@ def load_data(size, images, crawl_messages, last_qso_timestamp):
     db = None
 
     try:
+        logging.debug('connecting to database')
         db = sqlite3.connect(DATABASE_FILENAME)
         cursor = db.cursor()
         logging.debug('database connected')
@@ -84,16 +82,18 @@ def load_data(size, images, crawl_messages, last_qso_timestamp):
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
                        'ORDER BY timestamp DESC LIMIT 1')
         last_qso_time = int(time.time()) - 60
+        for row in cursor:
+            last_qso_time = row[0]
+            message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
+                                                                datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
+            logging.debug(message)
 
         data_updated = False
 
+        logging.debug('old_timestamp = %d, timestamp = %d' ,last_qso_timestamp, last_qso_time)
         if last_qso_time != last_qso_timestamp:
             data_updated = True
             message = ''
-            for row in cursor:
-                last_qso_time = row[0]
-                message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
-                                                                    datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
             crawl_messages.set_message(3, message)
             crawl_messages.set_message_colors(3, CYAN, BLACK)
 
@@ -220,22 +220,22 @@ def init_display():
             #  logging.warn('Driver: %s failed.' % driver)
             continue
         found = True
-        logging.info('using %s driver' % driver)
+        logging.info('using %s driver', driver)
         break
 
     if not found:
         raise Exception('No suitable video driver found!')
 
-    pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
     if driver != 'directx':  # debugging hack runs in a window on Windows
+        pygame.mouse.set_visible(0)
         screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     else:
         logging.info('running in windowed mode')
         size = (1680, 1050)
         screen = pygame.display.set_mode(size)
 
-    logging.info('display size: %d x %d' % size)
+    logging.info('display size: %d x %d', size[0], size[1])
     # Clear the screen to start
     screen.fill(BLACK)
     return screen, size
@@ -247,7 +247,7 @@ def make_pie(size, values, labels, title):
     return the chart as a pygame surface
     make the pie chart a square that is as tall as the display.
     """
-    logging.debug('make_pie(...,...,%s)' % title)
+    logging.debug('make_pie(...,...,%s)', title)
     inches = size[1] / 100.0
     fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
     ax = fig.add_subplot(111)
@@ -270,7 +270,7 @@ def make_pie(size, values, labels, title):
 
     canvas_size = canvas.get_width_height()
     surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
-    logging.debug('make_pie(...,...,%s) done' % title)
+    logging.debug('make_pie(...,...,%s) done', title)
     return surf
 
 
@@ -278,12 +278,13 @@ def show_graph(screen, size, surf):
     """
     display a surface on the screen.
     """
-    logging.debug('show_graph')
+    logging.debug('show_graph()')
     xoffset = (size[0] - surf.get_width()) / 2
     # yoffset = (graph_size[1] - surf.get_height()) / 2
     yoffset = 0
     screen.fill((0, 0, 0))
     screen.blit(surf, (xoffset, yoffset))
+    logging.debug('show_graph() done')
 
 
 def qso_operators_graph(size, qso_operators):
@@ -390,7 +391,7 @@ def qso_rates_chart(size, qsos_per_hour):
             cl = qso_counts[i]
             cl.append(c)
 
-    logging.debug('make_plot(...,...,%s)' % title)
+    logging.debug('make_plot(...,...,%s)', title)
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
@@ -444,7 +445,7 @@ def draw_table(size, cell_text, title, font=None):
     """
     draw a table
     """
-    logging.debug('draw_table(...,%s)' % title)
+    logging.debug('draw_table(...,%s)', title)
     font_size = 100
     if font is None:
         table_font = view_font
@@ -536,7 +537,7 @@ def draw_table(size, cell_text, title, font=None):
             textpos.right = x - text_x_offset
             surf.blit(text, textpos)
         y += row_height
-    logging.debug('draw_table(...,%s) done' % title)
+    logging.debug('draw_table(...,%s) done', title)
     return surf
 
 
@@ -683,29 +684,30 @@ class CrawlMessages:
                 break
 
 
-def refresh_data(size, images, crawl_messages, last_qso_timestamp):
-    """
-    reload the data from the database, (re)generate graphics
-    """
-    logging.debug('refresh_data')
-    last_qso_timestamp = load_data(size, images, crawl_messages, last_qso_timestamp)
-    logging.debug('images refreshed')
-
-
 class UpdateThread (threading.Thread):
     """
     run the chart updates in their own thread, so the UI does not block.
     """
     def __init__(self, size, images, crawl_messages):
-        super(UpdateThread, self).__init__()
+        threading.Thread.__init__(self)
+        # super(UpdateThread, self).__init__()
+        self.event = threading.Event()
         self.size = size
-        assert isinstance(images, object)
         self.images = images
         self.crawl_messages = crawl_messages
+        self.last_qso_timestamp = 0
 
     def run(self):
-        last_qso_timestamp = 0
-        refresh_data(self.size, self.images, self.crawl_messages, last_qso_timestamp)
+        while not self.event.is_set():
+            t0 = time.time()
+            self.last_qso_timestamp = load_data(self.size, self.images, self.crawl_messages, self.last_qso_timestamp)
+            t1 = time.time()
+            delta = t1 - t0
+            update_delay = DATA_DWELL_TIME - delta
+            if update_delay < 0:
+                update_delay = DATA_DWELL_TIME
+            logging.debug('Next data update in %f seconds', update_delay)
+            self.event.wait(update_delay)
 
 
 def main():
@@ -748,8 +750,8 @@ def main():
                     milliseconds = 0
                     data_update_timer -= 1
                     if data_update_timer < 1:
-                        thread = UpdateThread(display_size, images, crawl_messages)
-                        thread.start()
+                        #thread = UpdateThread(display_size, images, crawl_messages)
+                        #thread.start()
                         data_update_timer = DATA_DWELL_TIME
                     display_update_timer -= 1
                     if display_update_timer < 1:
@@ -780,7 +782,14 @@ def main():
                     show_page(screen, size, images[image_index])
                     display_update_timer = DISPLAY_DWELL_TIME
                 else:
-                    print event.key
+                    logging.debug('event key=%d', event.key)
+
+
+    logging.debug('stopping update thread')
+    thread.event.set()
+    logging.debug('waiting for update thread to stop...')
+    thread.join(60)
+    logging.debug('update thread has stopped.')
 
     pygame.time.set_timer(pygame.USEREVENT, 0)
 
