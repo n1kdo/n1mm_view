@@ -23,24 +23,6 @@ from mpl_toolkits.basemap import Basemap
 from n1mm_view_constants import *
 from n1mm_view_config import *
 
-# override for testing:
-CONTEST_SECTIONS = {
-    'AB': 'Alberta',
-    'BC': 'British Columbia',
-    'GTA': 'Greater Toronto Area',
-    'MAR': 'Maritime',
-    'MB': 'Manitoba',
-    'NL': 'Newfoundland/Labrador',
-    'NT': 'Northern Territories',
-    'ONE': 'Ontario East',
-    'ONN': 'Ontario North',
-    'ONS': 'Ontario South',
-    'QC': 'Quebec',
-    'SK': 'Saskatchewan',
-}
-
-ZZsections = ['AB', 'BC', 'GTA', 'MAR', 'MB','NL', 'NT', 'ONE', 'ONN', 'ONS', 'QC', 'SK']
-
 GREEN = pygame.Color('#00ff00')
 BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
@@ -97,7 +79,7 @@ def init_display():
     pygame.mouse.set_visible(0)
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
     logging.info('display size: %d x %d' % size)
-    if driver != 'directx':  # debugging hack runs in a window on Windows
+    if driver not in ['directx', 'windib']:  # debugging hack runs in a window on Windows
         screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     else:
         size = (1680, 1050)
@@ -135,25 +117,6 @@ def load_data():
     global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
     global qsos_per_hour, qsos_by_band, qsos_by_section, first_qso_time, last_qso_time
 
-    # load qso_operators
-    qso_operators = []
-    cursor.execute('SELECT name, qso_count FROM qso_operator JOIN operator\n'
-                   'ON qso_operator.operator_id = operator.id ORDER BY qso_count DESC;')
-    for row in cursor:
-        qso_operators.append((row[0], row[1]))
-
-    # load qso_stations
-    qso_stations = []
-    cursor.execute('SELECT name, qso_count FROM qso_station JOIN station\n'
-                   'ON qso_station.station_id = station.id ORDER BY qso_count DESC;')
-    for row in cursor:
-        qso_stations.append((row[0], row[1]))
-
-    # load qso_band_modes
-    qso_band_modes = []
-    cursor.execute('SELECT band_mode_id, qso_count FROM qso_band_mode;')
-    for row in cursor:
-        qso_band_modes.append((row[0], row[1]))
 
     # calculate QSOs per hour rate for all active operators
     # the higher the slice_minutes number is, the better the
@@ -162,13 +125,13 @@ def load_data():
     slices_per_hour = 60 / slice_minutes
 
     # get timestamp from the first record in the database
-    cursor.execute('SELECT timestamp FROM qso_log ORDER BY id LIMIT 1')
+    cursor.execute('SELECT timestamp FROM qso_log ORDER BY timestamp LIMIT 1')
     first_qso_time = int(time.time()) - 60
     for row in cursor:
         first_qso_time = row[0]
 
     # get timestamp from the last record in the database
-    cursor.execute('SELECT timestamp FROM qso_log ORDER BY id DESC LIMIT 1')
+    cursor.execute('SELECT timestamp FROM qso_log ORDER BY timestamp DESC LIMIT 1')
     last_qso_time = int(time.time()) - 60
     for row in cursor:
         last_qso_time = row[0]
@@ -255,8 +218,13 @@ def create_map():
         resolution='i',  # 'c', 'l', 'i', 'h', 'f'
     )
     logging.debug('created map')
+    logging.debug('loading shapes...')
     for section_name in CONTEST_SECTIONS.keys():
-        my_map.readshapefile('shapes/%s' % section_name, section_name, drawbounds=False)
+        # logging.debug('trying to load shape for %s', section_name)
+        try:
+            my_map.readshapefile('shapes/%s' % section_name, section_name, drawbounds=False)
+        except IOError, err:
+            logging.error('Could not load shape for %s' % section_name)
 
     logging.debug('loaded section shapes')
 
@@ -310,7 +278,7 @@ def draw_map():
                 if color_index >= num_colors:
                     color_index = num_colors - 1
                 section_color = color_palette[color_index]
-            print '%s %d %d' % (section_name, qsos, color_index)
+            # print '%s %d %d' % (section_name, qsos, color_index)
 
             patches = []
             for ss in shape:
