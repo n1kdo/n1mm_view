@@ -23,7 +23,7 @@ __license__ = 'Simplified BSD'
 BROADCAST_BUF_SIZE = 2048
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.DEBUG)
+                    level=LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
 
@@ -110,6 +110,7 @@ def create_tables(db, cursor):
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_mode_id ON qso_log(mode_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_operator_id ON qso_log(operator_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_station_id ON qso_log(station_id);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_section ON qso_log(section);')
     db.commit()
 
 

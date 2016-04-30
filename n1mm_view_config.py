@@ -3,6 +3,7 @@ this file contains configuration values for n1mm_view.
 If I did this right, this should be the only thing a user needs to customize.
 """
 import datetime
+import logging
 
 """ name of database file """
 DATABASE_FILENAME = 'n1mm_view.db'
@@ -26,5 +27,7 @@ QTH_LONGITUDE = -84.4616047
 DISPLAY_DWELL_TIME = 10
 """ number of seconds before automatic graph update from database """
 DATA_DWELL_TIME = 60
+""" log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
+LOG_LEVEL = logging.WARN
 
 
