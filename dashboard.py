@@ -4,12 +4,10 @@ n1mm_view dashboard
 This program displays QSO statistics collected by the collector.
 """
 
-import datetime
 import logging
 import os
 import pygame
 import sqlite3
-import sys
 import time
 import threading
 
@@ -28,8 +26,6 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-database_name = 'n1mm_view.db'
-
 DISPLAY_DWELL_TIME = 10
 DATA_DWELL_TIME = 60
 
@@ -42,29 +38,11 @@ BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
 GRAY = pygame.Color('#cccccc')
 
-view_font = None
-view_font_height = 0
-bigger_font = None
-image_index = 0
-qso_operators = []
-qso_stations = []
-qso_band_modes = []
-operator_qso_rates = []
-qsos_per_hour = []
-qsos_by_band = []
-qsos_by_section = []
-first_qso_time = 0
-last_qso_time = 0
-
-crawl_messages = [''] * 10
-crawl_message_colors = [(GREEN, BLACK)] * 10
-crawl_message_surfaces = None
-crawl_message_first_x = 0
-crawl_message_last_added_index = -1
-
-screen = None
-size = None
-graph_size = None
+# Initialize font support
+pygame.font.init()
+view_font = pygame.font.Font('veraMoBd.ttf', 64)
+bigger_font = pygame.font.SysFont('veraMoBd.ttf', 180)
+view_font_height = view_font.get_height()
 
 LOGO_IMAGE_INDEX = 0
 QSO_COUNTS_TABLE_INDEX = 1
@@ -76,125 +54,132 @@ QSO_BANDS_PIE_INDEX = 6
 QSO_MODES_PIE_INDEX = 7
 QSO_RATE_CHART_IMAGE_INDEX = 8
 IMAGE_COUNT = 9
-images = [None] * IMAGE_COUNT
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 logging.Formatter.converter = time.gmtime
 
 
-def load_data():
+def load_data(size, images, crawl_messages, last_qso_timestamp):
     """
     load data from the database tables
     """
     logging.debug('load data')
+
+    qso_operators = []
+    qso_stations = []
+    qso_band_modes = []
+    operator_qso_rates = []
+    qsos_per_hour = []
+
     db = None
 
-    global qso_operators, qso_stations, qso_band_modes, operator_qso_rates
-    global qsos_per_hour, qsos_by_band, qsos_by_section, first_qso_time, last_qso_time
-    global crawl_messages
-
     try:
-        db = sqlite3.connect(database_name)
+        db = sqlite3.connect(DATABASE_FILENAME)
         cursor = db.cursor()
         logging.debug('database connected')
-
-        # load qso_operators
-        logging.debug('Load QSOs by Operator')
-        qso_operators = []
-        cursor.execute('SELECT name, COUNT(operator_id) AS qso_count \n'
-                       'FROM qso_log JOIN operator ON operator.id = operator_id \n'
-                       'GROUP BY operator_id ORDER BY qso_count desc;')
-        for row in cursor:
-            qso_operators.append((row[0], row[1]))
-
-        # load qso_stations
-        logging.debug('Load QSOs by Station')
-        qso_stations = []
-        cursor.execute('SELECT name, COUNT(station_id) AS qso_count \n'
-                       'FROM qso_log JOIN station ON station.id = station_id GROUP BY station_id;')
-        for row in cursor:
-            qso_stations.append((row[0], row[1]))
-
-        qso_band_modes = [[0] * 4 for _ in Bands.BANDS_LIST]
-
-        cursor.execute('SELECT COUNT(*), band_id, mode_id FROM qso_log GROUP BY band_id, mode_id;')
-        for row in cursor:
-            qso_band_modes[row[1]][Modes.MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
-
-        # calculate QSOs per hour rate for all active operators
-        # the higher the slice_minutes number is, the better the
-        # resolution of the rate, but the slower to update.
-        slice_minutes = 10
-        slices_per_hour = 60 / slice_minutes
-
-        # get timestamp from the first record in the database
-        logging.debug('Loading first and last QSO timestamps')
-        cursor.execute('SELECT timestamp FROM qso_log ORDER BY timestamp LIMIT 1')
-        first_qso_time = int(time.time()) - 60
-        for row in cursor:
-            first_qso_time = row[0]
 
         # get timestamp from the last record in the database
         cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
                        'ORDER BY timestamp DESC LIMIT 1')
         last_qso_time = int(time.time()) - 60
-        message = ''
-        for row in cursor:
-            last_qso_time = row[0]
-            message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
-                                        datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
-        crawl_messages[3] = message
-        crawl_message_colors[3] = (CYAN, BLACK)
 
-        start_time = last_qso_time - slice_minutes * 60
+        data_updated = False
 
-        # load QSOs per Hour by Operator
-        logging.debug('Load QSOs per Hour by Operator')
-        cursor.execute('SELECT operator.name, COUNT(operator_id) qso_count FROM qso_log\n'
-                       'JOIN operator ON operator.id = operator_id\n'
-                       'WHERE timestamp >= ? AND timestamp <= ?\n'
-                       'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, last_qso_time))
-        operator_qso_rates = [['Operator', 'Rate']]
-        total = 0
-        for row in cursor:
-            rate = row[1] * slices_per_hour
-            total += rate
-            operator_qso_rates.append([row[0], '%4d' % rate])
-        operator_qso_rates.append(['Total', '%4d' % total])
+        if last_qso_time != last_qso_timestamp:
+            data_updated = True
+            message = ''
+            for row in cursor:
+                last_qso_time = row[0]
+                message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
+                                                                    datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
+            crawl_messages.set_message(3, message)
+            crawl_messages.set_message_colors(3, CYAN, BLACK)
 
-        qsos_per_hour = []
-        qsos_by_band = [0] * Bands.count()
-        slice_minutes = 15
-        slices_per_hour = 60 / slice_minutes
-        window_seconds = slice_minutes * 60
+            # load qso_operators
+            logging.debug('Load QSOs by Operator')
+            qso_operators = []
+            cursor.execute('SELECT name, COUNT(operator_id) AS qso_count \n'
+                           'FROM qso_log JOIN operator ON operator.id = operator_id \n'
+                           'GROUP BY operator_id ORDER BY qso_count desc;')
+            for row in cursor:
+                qso_operators.append((row[0], row[1]))
 
-        # load QSO rates per Hour by Band
-        logging.debug('Load QSOs per Hour by Band')
-        cursor.execute('SELECT timestamp / %d * %d AS ts, band_id, COUNT(*) AS qso_count \n'
-                       'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
-        for row in cursor:
-            if len(qsos_per_hour) == 0:
-                qsos_per_hour.append([0] * Bands.count())
-                qsos_per_hour[-1][0] = row[0]
-            while qsos_per_hour[-1][0] != row[0]:
-                ts = qsos_per_hour[-1][0] + window_seconds
-                qsos_per_hour.append([0] * Bands.count())
-                qsos_per_hour[-1][0] = ts
-            qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
-            qsos_by_band[row[1]] += row[2]
+            # load qso_stations
+            logging.debug('Load QSOs by Station')
+            qso_stations = []
+            cursor.execute('SELECT name, COUNT(station_id) AS qso_count \n'
+                           'FROM qso_log JOIN station ON station.id = station_id GROUP BY station_id;')
+            for row in cursor:
+                qso_stations.append((row[0], row[1]))
 
-        for rec in qsos_per_hour:
-            rec[0] = datetime.datetime.utcfromtimestamp(rec[0])
-            t = rec[0].strftime('%H:%M:%S')
+            qso_band_modes = [[0] * 4 for _ in Bands.BANDS_LIST]
 
-        # load QSOs by Section
-        logging.debug('Load QSOs by Section')
-        qsos_by_section = []
-        cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section ORDER BY section;')
-        for row in cursor:
-            qsos_by_section.append((row[0], row[1]))
+            cursor.execute('SELECT COUNT(*), band_id, mode_id FROM qso_log GROUP BY band_id, mode_id;')
+            for row in cursor:
+                qso_band_modes[row[1]][Modes.MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
+
+            # calculate QSOs per hour rate for all active operators
+            # the higher the slice_minutes number is, the better the
+            # resolution of the rate, but the slower to update.
+            slice_minutes = 10
+            slices_per_hour = 60 / slice_minutes
+
+            # get timestamp from the first record in the database
+            logging.debug('Loading first and last QSO timestamps')
+            cursor.execute('SELECT timestamp FROM qso_log ORDER BY timestamp LIMIT 1')
+            first_qso_time = int(time.time()) - 60
+            for row in cursor:
+                first_qso_time = row[0]
+
+            start_time = last_qso_time - slice_minutes * 60
+
+            # load QSOs per Hour by Operator
+            logging.debug('Load QSOs per Hour by Operator')
+            cursor.execute('SELECT operator.name, COUNT(operator_id) qso_count FROM qso_log\n'
+                           'JOIN operator ON operator.id = operator_id\n'
+                           'WHERE timestamp >= ? AND timestamp <= ?\n'
+                           'GROUP BY operator_id ORDER BY qso_count DESC LIMIT 10;', (start_time, last_qso_time))
+            operator_qso_rates = [['Operator', 'Rate']]
+            total = 0
+            for row in cursor:
+                rate = row[1] * slices_per_hour
+                total += rate
+                operator_qso_rates.append([row[0], '%4d' % rate])
+            operator_qso_rates.append(['Total', '%4d' % total])
+
+            qsos_per_hour = []
+            qsos_by_band = [0] * Bands.count()
+            slice_minutes = 15
+            slices_per_hour = 60 / slice_minutes
+            window_seconds = slice_minutes * 60
+
+            # load QSO rates per Hour by Band
+            logging.debug('Load QSOs per Hour by Band')
+            cursor.execute('SELECT timestamp / %d * %d AS ts, band_id, COUNT(*) AS qso_count \n'
+                           'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
+            for row in cursor:
+                if len(qsos_per_hour) == 0:
+                    qsos_per_hour.append([0] * Bands.count())
+                    qsos_per_hour[-1][0] = row[0]
+                while qsos_per_hour[-1][0] != row[0]:
+                    ts = qsos_per_hour[-1][0] + window_seconds
+                    qsos_per_hour.append([0] * Bands.count())
+                    qsos_per_hour[-1][0] = ts
+                qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
+                qsos_by_band[row[1]] += row[2]
+
+            for rec in qsos_per_hour:
+                rec[0] = datetime.datetime.utcfromtimestamp(rec[0])
+                t = rec[0].strftime('%H:%M:%S')
+
+            # load QSOs by Section
+            logging.debug('Load QSOs by Section')
+            qsos_by_section = []
+            cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section ORDER BY section;')
+            for row in cursor:
+                qsos_by_section.append((row[0], row[1]))
 
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
@@ -203,12 +188,23 @@ def load_data():
     if db is not None:
         db.close()
 
+    if data_updated:
+        images[QSO_COUNTS_TABLE_INDEX] = qso_summary_table(size, qso_band_modes)
+        images[QSO_RATES_TABLE_INDEX] = qso_rates_table(size, operator_qso_rates)
+        images[QSO_OPERATORS_PIE_INDEX] = qso_operators_graph(size, qso_operators)
+        images[QSO_OPERATORS_TABLE_INDEX] = qso_operators_table(size, qso_operators)
+        images[QSO_STATIONS_PIE_INDEX] = qso_stations_graph(size, qso_stations)
+        images[QSO_BANDS_PIE_INDEX] = qso_bands_graph(size, qso_band_modes)
+        images[QSO_MODES_PIE_INDEX] = qso_modes_graph(size, qso_band_modes)
+        images[QSO_RATE_CHART_IMAGE_INDEX] = qso_rates_chart(size, qsos_per_hour)
+
+    return last_qso_time
+
 
 def init_display():
     """
     set up the pygame display, full screen
     """
-    global screen, size, graph_size, view_font, view_font_height, bigger_font
 
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
@@ -242,22 +238,17 @@ def init_display():
     logging.info('display size: %d x %d' % size)
     # Clear the screen to start
     screen.fill(BLACK)
-    # Initialise font support
-    pygame.font.init()
-    view_font = pygame.font.Font('veraMoBd.ttf', 64)
-    bigger_font = pygame.font.SysFont('veraMoBd.ttf', 180)
-    view_font_height = view_font.get_height()
-    graph_size = (pygame.display.Info().current_w, pygame.display.Info().current_h - view_font_height)
+    return screen, size
 
 
-def make_pie(values, labels, title):
+def make_pie(size, values, labels, title):
     """
     make a pie chart using matplotlib.
     return the chart as a pygame surface
     make the pie chart a square that is as tall as the display.
     """
     logging.debug('make_pie(...,...,%s)' % title)
-    inches = graph_size[1] / 100.0
+    inches = size[1] / 100.0
     fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
     ax = fig.add_subplot(111)
     ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'white'})
@@ -283,33 +274,32 @@ def make_pie(values, labels, title):
     return surf
 
 
-def show_graph(surf):
+def show_graph(screen, size, surf):
     """
     display a surface on the screen.
     """
     logging.debug('show_graph')
-    xoffset = (graph_size[0] - surf.get_width()) / 2
+    xoffset = (size[0] - surf.get_width()) / 2
     # yoffset = (graph_size[1] - surf.get_height()) / 2
     yoffset = 0
     screen.fill((0, 0, 0))
     screen.blit(surf, (xoffset, yoffset))
 
 
-def qso_operators_graph():
+def qso_operators_graph(size, qso_operators):
     """
     create the QSOs by Operators pie chart
     """
-    global qso_operators
     # calculate QSO by Operator
     labels = []
     values = []
     for d in qso_operators:
         labels.append(d[0])
         values.append(d[1])
-    return make_pie(values, labels, "QSOs by Operator")
+    return make_pie(size, values, labels, "QSOs by Operator")
 
 
-def qso_operators_table():
+def qso_operators_table(size, qso_operators):
     """
     create the Top 5 QSOs by Operators table
     """
@@ -320,10 +310,10 @@ def qso_operators_table():
         count += 1
         if count >= 5:
             break
-    return draw_table(cells, "Top 5 Operators", bigger_font)
+    return draw_table(size, cells, "Top 5 Operators", bigger_font)
 
 
-def qso_stations_graph():
+def qso_stations_graph(size, qso_stations):
     """
     create the QSOs by Station pie chart
     """
@@ -333,10 +323,10 @@ def qso_stations_graph():
     for d in sorted(qso_stations, key=lambda count: count[1], reverse=True):
         labels.append(d[0])
         values.append(d[1])
-    return make_pie(values, labels, "QSOs by Station")
+    return make_pie(size, values, labels, "QSOs by Station")
 
 
-def qso_bands_graph():
+def qso_bands_graph(size, qso_band_modes):
     """
     create the QSOs by Band pie chart
     """
@@ -350,10 +340,10 @@ def qso_bands_graph():
         if bd[1] > 0:
             labels.append(Bands.BANDS_TITLE[bd[0]])
             values.append(bd[1])
-    return make_pie(values, labels, "QSOs by Band")
+    return make_pie(size, values, labels, "QSOs by Band")
 
 
-def qso_modes_graph():
+def qso_modes_graph(size, qso_band_modes):
     """
     create the QSOs by Mode pie chart
     """
@@ -368,24 +358,24 @@ def qso_modes_graph():
         if md[1] > 0:
             labels.append(Modes.SIMPLE_MODES_LIST[md[0]])
             values.append(md[1])
-    return make_pie(values, labels, "QSOs by Mode")
+    return make_pie(size, values, labels, "QSOs by Mode")
 
 
-def qso_summary_table():
+def qso_summary_table(size, qso_band_modes):
     """
     create the QSO Summary Table
     """
-    return draw_table(make_score_table(), "QSOs Summary")
+    return draw_table(size, make_score_table(qso_band_modes), "QSOs Summary")
 
 
-def qso_rates_table():
+def qso_rates_table(size, operator_qso_rates):
     """
     create the QSO Rates by Operator table
     """
-    return draw_table(operator_qso_rates, "QSO/Hour Rates")
+    return draw_table(size, operator_qso_rates, "QSO/Hour Rates")
 
 
-def qso_rates_chart():
+def qso_rates_chart(size, qsos_per_hour):
     """
     make the qsos per hour per band chart
     returns a pygame surface
@@ -401,8 +391,8 @@ def qso_rates_chart():
             cl.append(c)
 
     logging.debug('make_plot(...,...,%s)' % title)
-    width_inches = graph_size[0] / 100.0
-    height_inches = graph_size[1] / 100.0
+    width_inches = size[0] / 100.0
+    height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
     ax = fig.add_subplot(111, axisbg='black')
     ax.set_title(title, color='white', size='xx-large', weight='bold')
@@ -450,7 +440,7 @@ def qso_rates_chart():
     return surf
 
 
-def draw_table(cell_text, title, font=None):
+def draw_table(size, cell_text, title, font=None):
     """
     draw a table
     """
@@ -550,7 +540,7 @@ def draw_table(cell_text, title, font=None):
     return surf
 
 
-def make_score_table():
+def make_score_table(qso_band_modes):
     """
     create the score table from data
     """
@@ -588,22 +578,20 @@ def make_score_table():
     return cell_text
 
 
-def next_chart():
+def show_page(screen, size, image):
     """
-    advance to the next chart
+    show a chart image
     """
-    logging.debug('next_chart')
-    global image_index, images
-    surf = images[image_index]
-    if surf is not None:
-        show_graph(surf)
-    image_index += 1
-    if image_index >= IMAGE_COUNT:
-        image_index = 0
-    logging.debug('next_chart() done')
+    logging.debug("show_page()")
+    if image is not None:
+        show_graph(screen, size, image)
+    logging.debug('show_page() done')
 
 
 def deltatime_to_string(delta_time):
+    """
+    return a string that represents delta time
+    """
     seconds = delta_time.total_seconds()
     days, seconds = divmod(seconds, 86400)
     hours, seconds = divmod(seconds, 3600)
@@ -614,82 +602,93 @@ def deltatime_to_string(delta_time):
         return '%02d:%02d:%02d' % (hours, minutes, seconds)
 
 
-def update_crawl_message():
+def update_crawl_message(crawl_messages):
     now = datetime.datetime.utcnow()
-    crawl_messages[0] = EVENT_NAME
-    crawl_message_colors[0] = (BLUE, BLACK)
-    crawl_messages[1] = datetime.datetime.strftime(now, '%H:%M:%S')
+    crawl_messages.set_message(0, EVENT_NAME)
+    crawl_messages.set_message_colors(0, BLUE, BLACK)
+    crawl_messages.set_message(1, datetime.datetime.strftime(now, '%H:%M:%S'))
     if now < EVENT_START_TIME:
         delta = EVENT_START_TIME - now
-        crawl_messages[2] = 'The Contest starts in ' + deltatime_to_string(delta)
-        crawl_message_colors[2] = (GREEN, BLACK)
+        crawl_messages.set_message(2, 'The Contest starts in ' + deltatime_to_string(delta))
+        crawl_messages.set_message_colors(2, GREEN, BLACK)
     elif now < EVENT_END_TIME:
         delta = EVENT_END_TIME - now
-        crawl_messages[2] = 'The contest ends in ' + deltatime_to_string(delta)
-        crawl_message_colors[2] = (YELLOW, BLACK)
+        crawl_messages.set_message(2, 'The contest ends in ' + deltatime_to_string(delta))
+        crawl_messages.set_message_colors(2, YELLOW, BLACK)
     else:
-        crawl_messages[2] = 'The contest is over.'
-        crawl_message_colors[2] = (RED, BLACK)
+        crawl_messages.set_message(2, 'The contest is over.')
+        crawl_messages.set_message_colors(2, RED, BLACK)
 
 
-def crawl_message():
-    global crawl_message_surfaces
-    global crawl_message_first_x
-    global crawl_message_last_added_index
+class CrawlMessages:
+    """
+    class to manage a crawl of varied text messages on the bottom of the display
+    """
+    def __init__(self, screen, size):
+        self.screen = screen
+        self.size = size
+        self.messages = [''] * 10
+        self.message_colors = [(GREEN, BLACK)] * 10
+        self.message_surfaces = None
+        self.last_added_index = -1
+        self.first_x = -1
 
-    if crawl_message_surfaces is None:
-        crawl_message_surfaces = []
-        crawl_message_surfaces.append(view_font.render(' ' + crawl_messages[0] + ' ', True,
-                                                       crawl_message_colors[0][0], crawl_message_colors[0][1]))
-        crawl_message_first_x = size[0]
-        crawl_message_last_added_index = 0
+    def set_message(self, index, message):
+        if index >=0 and index < len(self.messages):
+            self.messages[index] = message
 
-    crawl_message_first_x -= 1
-    rect = crawl_message_surfaces[0].get_rect()
-    if crawl_message_first_x + rect.width < 0:
-        crawl_message_surfaces = crawl_message_surfaces[1:]
-        crawl_message_first_x = 0
-    x = crawl_message_first_x
-    for surf in crawl_message_surfaces:
-        rect = surf.get_rect()
-        x = x + rect.width
-    while x < size[0]:
-        crawl_message_last_added_index += 1
-        if crawl_message_last_added_index >= len(crawl_messages):
-            crawl_message_last_added_index = 0
-        if crawl_messages[crawl_message_last_added_index] != '':
-            surf = view_font.render(' ' + crawl_messages[crawl_message_last_added_index] + ' ', True,
-                                    crawl_message_colors[crawl_message_last_added_index][0],
-                                    crawl_message_colors[crawl_message_last_added_index][1])
+    def set_message_colors(self, index, fg, bg):
+        if index >=0 and index < len(self.messages):
+            self.message_colors[index] = (fg, bg)
+
+    def crawl_message(self):
+        if self.message_surfaces is None:
+            logging.info('creating surfaces')
+            self.message_surfaces = [view_font.render(' ' + self.messages[0] + ' ', True,
+                                                      self.message_colors[0][0],
+                                                      self.message_colors[0][1])]
+            self.first_x = self.size[0]
+            self.last_added_index = 0
+
+        self.first_x -= 1
+        rect = self.message_surfaces[0].get_rect()
+        if self.first_x + rect.width < 0:
+            self.message_surfaces = self.message_surfaces[1:]
+            self.first_x = 0
+        x = self.first_x
+        for surf in self.message_surfaces:
             rect = surf.get_rect()
-            crawl_message_surfaces.append(surf)
+            x = x + rect.width
+
+        while x < self.size[0]:
+            self.last_added_index += 1
+            if self.last_added_index >= len(self.messages):
+                self.last_added_index = 0
+            if self.messages[self.last_added_index] != '':
+                surf = view_font.render(' ' + self.messages[self.last_added_index] + ' ', True,
+                                        self.message_colors[self.last_added_index][0],
+                                        self.message_colors[self.last_added_index][1])
+                rect = surf.get_rect()
+                self.message_surfaces.append(surf)
+                x += rect.width
+
+        x = self.first_x
+        for surf in self.message_surfaces:
+            rect = surf.get_rect()
+            rect.bottom = self.size[1] - 1
+            rect.left = x
+            self.screen.blit(surf, rect)
             x += rect.width
-    x = crawl_message_first_x
-    for surf in crawl_message_surfaces:
-        rect = surf.get_rect()
-        rect.bottom = size[1] - 1
-        rect.left = x
-        screen.blit(surf, rect)
-        x += rect.width
-        if x >= size[0]:
-            break
+            if x >= self.size[0]:
+                break
 
 
-def refresh_data():
+def refresh_data(size, images, crawl_messages, last_qso_timestamp):
     """
     reload the data from the database, (re)generate graphics
     """
-    global images
     logging.debug('refresh_data')
-    load_data()
-    images[QSO_COUNTS_TABLE_INDEX] = qso_summary_table()
-    images[QSO_RATES_TABLE_INDEX] = qso_rates_table()
-    images[QSO_OPERATORS_PIE_INDEX] = qso_operators_graph()
-    images[QSO_OPERATORS_TABLE_INDEX] = qso_operators_table()
-    images[QSO_STATIONS_PIE_INDEX] = qso_stations_graph()
-    images[QSO_BANDS_PIE_INDEX] = qso_bands_graph()
-    images[QSO_MODES_PIE_INDEX] = qso_modes_graph()
-    images[QSO_RATE_CHART_IMAGE_INDEX] = qso_rates_chart()
+    last_qso_timestamp = load_data(size, images, crawl_messages, last_qso_timestamp)
     logging.debug('images refreshed')
 
 
@@ -697,25 +696,37 @@ class UpdateThread (threading.Thread):
     """
     run the chart updates in their own thread, so the UI does not block.
     """
+    def __init__(self, size, images, crawl_messages):
+        super(UpdateThread, self).__init__()
+        self.size = size
+        assert isinstance(images, object)
+        self.images = images
+        self.crawl_messages = crawl_messages
+
     def run(self):
-        refresh_data()
+        last_qso_timestamp = 0
+        refresh_data(self.size, self.images, self.crawl_messages, last_qso_timestamp)
 
 
 def main():
     logging.info('dashboard startup')
+    images = [None] * IMAGE_COUNT
 
-    init_display()
+    screen, size = init_display()
+    display_size = (size[0], size[1] - view_font_height)
 
     logging.debug('display setup')
 
-    thread = UpdateThread()
-    thread.start()
-
     images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
 
-    update_crawl_message()
+    crawl_messages = CrawlMessages(screen, size)
+    update_crawl_message(crawl_messages)
 
-    next_chart()
+    thread = UpdateThread(display_size, images, crawl_messages)
+    thread.start()
+
+    image_index = LOGO_IMAGE_INDEX
+    show_page(screen, size, images[LOGO_IMAGE_INDEX])
 
     milliseconds = 0
     update_time = 20
@@ -737,25 +748,39 @@ def main():
                     milliseconds = 0
                     data_update_timer -= 1
                     if data_update_timer < 1:
-                        thread = UpdateThread()
+                        thread = UpdateThread(display_size, images, crawl_messages)
                         thread.start()
                         data_update_timer = DATA_DWELL_TIME
                     display_update_timer -= 1
                     if display_update_timer < 1:
                         display_update_timer = DISPLAY_DWELL_TIME
-                        next_chart()
-                    update_crawl_message()
-                crawl_message()
+                        image_index += 1
+                        if image_index >= len(images):
+                            image_index = 0
+                        show_page(screen, size, images[image_index])
+                    update_crawl_message(crawl_messages)
+                crawl_messages.crawl_message()
                 pygame.display.flip()
             elif event.type == pygame.KEYDOWN:
                 if event.key == ord('q'):
                     logging.debug('Q key pressed')
                     run = False
-                elif event.key == ord('n'):
+                elif event.key == ord('n') or event.key == 275:
                     logging.debug('N key pressed')
-                    next_chart()
+                    image_index += 1
+                    if image_index >= len(images):
+                        image_index = 0
+                    show_page(screen, size, images[image_index])
                     display_update_timer = DISPLAY_DWELL_TIME
-                    #pygame.display.flip()
+                elif event.key == ord('p') or event.key == 276:
+                    logging.debug('P key pressed')
+                    image_index -= 1
+                    if image_index < 0:
+                        image_index = len(images) - 1
+                    show_page(screen, size, images[image_index])
+                    display_update_timer = DISPLAY_DWELL_TIME
+                else:
+                    print event.key
 
     pygame.time.set_timer(pygame.USEREVENT, 0)
 

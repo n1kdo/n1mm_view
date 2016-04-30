@@ -130,35 +130,6 @@ def convert_timestamp(s):
     return time.strptime(s, '%Y-%m-%d %H:%M:%S')
 
 
-def listener(db, cursor):
-    """
-    this is the UDP listener, the main loop.
-    """
-    s = socket(AF_INET, SOCK_DGRAM)
-    s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    try:
-        s.bind(('', N1MM_BROADCAST_PORT))
-    except:
-        logging.critical('Error connecting to the UDP stream.')
-        return
-
-    operators = Operators(db, cursor)
-    stations = Stations(db, cursor)
-
-    seen = set()
-    run = True
-    while run:
-        try:
-            udp_data = s.recv(BROADCAST_BUF_SIZE)
-            process_message(db, cursor, operators, stations, udp_data, seen)
-
-        except KeyboardInterrupt:
-            logging.info('Keyboard interrupt, shutting down...')
-            s.close()
-            run = False
-
-
 def get_from_dom(dom, name):
     """
     safely extract a field from a dom.
@@ -242,6 +213,35 @@ def process_message(db, cursor, operators, stations, data, seen):
                        exchange, section, comment)
     else:
         logging.warn('unknown message received, ignoring.')
+
+
+def listener(db, cursor):
+    """
+    this is the UDP listener, the main loop.
+    """
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    try:
+        s.bind(('', N1MM_BROADCAST_PORT))
+    except:
+        logging.critical('Error connecting to the UDP stream.')
+        return
+
+    operators = Operators(db, cursor)
+    stations = Stations(db, cursor)
+
+    seen = set()
+    run = True
+    while run:
+        try:
+            udp_data = s.recv(BROADCAST_BUF_SIZE)
+            process_message(db, cursor, operators, stations, udp_data, seen)
+
+        except KeyboardInterrupt:
+            logging.info('Keyboard interrupt, shutting down...')
+            s.close()
+            run = False
 
 
 def main():
