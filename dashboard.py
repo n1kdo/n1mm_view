@@ -82,6 +82,7 @@ def load_data(size, images, crawl_messages, last_qso_timestamp):
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
                        'ORDER BY timestamp DESC LIMIT 1')
         last_qso_time = int(time.time()) - 60
+        message = ''
         for row in cursor:
             last_qso_time = row[0]
             message = 'Last QSO: %s %s %s on %s by %s at %s' % (row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
@@ -92,8 +93,8 @@ def load_data(size, images, crawl_messages, last_qso_timestamp):
 
         logging.debug('old_timestamp = %d, timestamp = %d' ,last_qso_timestamp, last_qso_time)
         if last_qso_time != last_qso_timestamp:
+            logging.debug('data updated!')
             data_updated = True
-            message = ''
             crawl_messages.set_message(3, message)
             crawl_messages.set_message_colors(3, CYAN, BLACK)
 
@@ -405,11 +406,10 @@ def qso_rates_chart(size, qsos_per_hour):
         # ax.set_autoscalex_on(True)
         start_date = matplotlib.dates.date2num(EVENT_START_TIME)
         end_date =  matplotlib.dates.date2num(EVENT_END_TIME)
-        # ax.set_xlim([dates[0], dates[-1]])
         ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
-                     qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors)
+                     qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors, linewidth=0.2)
         ax.grid(True)
         legend = ax.legend(loc='best', ncol=Bands.count() - 1)
         legend.get_frame().set_color((0, 0, 0, 0))
