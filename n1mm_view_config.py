@@ -28,6 +28,6 @@ DISPLAY_DWELL_TIME = 10
 """ number of seconds before automatic graph update from database """
 DATA_DWELL_TIME = 60
 """ log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
-LOG_LEVEL = logging.WARN
+LOG_LEVEL = logging.INFO
 
 

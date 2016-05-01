@@ -6,11 +6,11 @@ This program displays QSO statistics collected by the collector.
 
 import logging
 import os
+import multiprocessing
 import pygame
 import sqlite3
 import time
-import threading
-
+# import threading
 import matplotlib
 
 #  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
@@ -32,8 +32,11 @@ __license__ = 'Simplified BSD'
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
 BLUE = pygame.Color('#3333cc')
+BRIGHT_BLUE = pygame.Color('#6666ff')
 YELLOW = pygame.Color('#cccc00')
 CYAN = pygame.Color('#00cccc')
+MAGENTA = pygame.Color('#cc00cc')
+ORANGE = pygame.Color('#ff9900')
 BLACK = pygame.Color('#000000')
 WHITE = pygame.Color('#ffffff')
 GRAY = pygame.Color('#cccccc')
@@ -56,12 +59,17 @@ QSO_RATE_CHART_IMAGE_INDEX = 8
 SECTIONS_WORKED_MAP_INDEX = 9
 IMAGE_COUNT = 10
 
+IMAGE_MESSAGE = 1
+CRAWL_MESSAGE = 2
+
+IMAGE_FORMAT = 'RGB'
+
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
 
-def load_data(size, images, crawl_messages, base_map, last_qso_timestamp):
+def load_data(size, q, base_map, last_qso_timestamp):
     """
     load data from the database tables
     """
@@ -100,8 +108,7 @@ def load_data(size, images, crawl_messages, base_map, last_qso_timestamp):
         if last_qso_time != last_qso_timestamp:
             logging.debug('data updated!')
             data_updated = True
-            crawl_messages.set_message(3, message)
-            crawl_messages.set_message_colors(3, CYAN, BLACK)
+            q.put((CRAWL_MESSAGE, 3, message))
 
             # load qso_operators
             logging.debug('Load QSOs by Operator')
@@ -195,17 +202,30 @@ def load_data(size, images, crawl_messages, base_map, last_qso_timestamp):
         db.close()
 
     if data_updated:
-        images[QSO_COUNTS_TABLE_INDEX] = qso_summary_table(size, qso_band_modes)
-        images[QSO_RATES_TABLE_INDEX] = qso_rates_table(size, operator_qso_rates)
-        images[QSO_OPERATORS_PIE_INDEX] = qso_operators_graph(size, qso_operators)
-        images[QSO_OPERATORS_TABLE_INDEX] = qso_operators_table(size, qso_operators)
-        images[QSO_STATIONS_PIE_INDEX] = qso_stations_graph(size, qso_stations)
-        images[QSO_BANDS_PIE_INDEX] = qso_bands_graph(size, qso_band_modes)
-        images[QSO_MODES_PIE_INDEX] = qso_modes_graph(size, qso_band_modes)
-        images[QSO_RATE_CHART_IMAGE_INDEX] = qso_rates_chart(size, qsos_per_hour)
-        images[SECTIONS_WORKED_MAP_INDEX] = draw_map(size, qsos_by_section, base_map)
+        image_data, image_size =  qso_summary_table(size, qso_band_modes)
+        enqueue_image(q, QSO_COUNTS_TABLE_INDEX, image_data, image_size)
+        image_data, image_size = qso_rates_table(size, operator_qso_rates)
+        enqueue_image(q, QSO_RATES_TABLE_INDEX, image_data, image_size)
+        image_data, image_size = qso_operators_graph(size, qso_operators)
+        enqueue_image(q, QSO_OPERATORS_PIE_INDEX, image_data, image_size)
+        image_data, image_size = qso_operators_table(size, qso_operators)
+        enqueue_image(q, QSO_OPERATORS_TABLE_INDEX, image_data, image_size)
+        image_data, image_size = qso_stations_graph(size, qso_stations)
+        enqueue_image(q, QSO_STATIONS_PIE_INDEX, image_data, image_size)
+        image_data, image_size = qso_bands_graph(size, qso_band_modes)
+        enqueue_image(q, QSO_BANDS_PIE_INDEX, image_data, image_size)
+        image_data, image_size = qso_modes_graph(size, qso_band_modes)
+        enqueue_image(q, QSO_MODES_PIE_INDEX, image_data, image_size)
+        image_data, image_size = qso_rates_chart(size, qsos_per_hour)
+        enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size )
+        image_data, image_size = draw_map(size, qsos_by_section, base_map)
+        enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
 
     return last_qso_time
+
+
+def enqueue_image(q, id, data, size):
+    q.put((IMAGE_MESSAGE, id, data, size))
 
 
 def init_display():
@@ -227,7 +247,7 @@ def init_display():
             #  logging.warn('Driver: %s failed.' % driver)
             continue
         found = True
-        logging.info('using %s driver', driver)
+        logging.debug('using %s driver', driver)
         break
 
     if not found:
@@ -242,7 +262,7 @@ def init_display():
         size = (1680, 1050)
         screen = pygame.display.set_mode(size)
 
-    logging.info('display size: %d x %d', size[0], size[1])
+    logging.debug('display size: %d x %d', size[0], size[1])
     # Clear the screen to start
     screen.fill(BLACK)
     return screen, size
@@ -282,12 +302,14 @@ def create_map():
 
 def draw_map(size, qsos_by_section, my_map):
     logging.debug('draw_map()')
-    title = 'Sections Worked'
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
-    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
-    ax = fig.add_subplot(111, axisbg='#000033')
-    ax.set_title(title, color='white', size='xx-large', weight='bold')
+    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
+    water = '#191970'  # '#15155e'
+    earth = '#552205'
+    ax = fig.add_subplot(111, axisbg=water)
+    ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
+                color='white', size=48, weight='bold')
 
     logging.debug('setting basemap axis')
     my_map.ax = ax
@@ -295,11 +317,11 @@ def draw_map(size, qsos_by_section, my_map):
     # my_map.drawcountries(color='white', linewidth=0.5)
     # my_map.drawstates(color='white')
     # my_map.drawmapboundary(fill_color='#000033')
-    my_map.fillcontinents(color='#333333', lake_color='#000033')
+    my_map.fillcontinents(color=earth, lake_color=water)
 
     # mark our QTH
     x,y = my_map(QTH_LONGITUDE, QTH_LATITUDE)
-    my_map.plot(x, y, 'o', color='r')
+    my_map.plot(x, y, '.', color='r')
     my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
 
     logging.debug('setting shapes')
@@ -328,7 +350,7 @@ def draw_map(size, qsos_by_section, my_map):
         plt.setp(text, color='w')
 
     # applying choropleth
-    logging.debug('applying choropleth')
+    # logging.debug('applying choropleth')
     for section_name in CONTEST_SECTIONS.keys():
         qsos = qsos_by_section.get(section_name)
         if qsos is None:
@@ -344,26 +366,23 @@ def draw_map(size, qsos_by_section, my_map):
                     break
 
             section_color = color_palette[color_index]
-            logging.debug('%s %d %d', section_name, qsos, color_index)
+            # logging.debug('%s %d %d', section_name, qsos, color_index)
 
             patches = []
             for ss in shape:
                 patches.append(matplotlib.patches.Polygon(np.array(ss), True))
-            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='k', linewidths=0.25, zorder=2)
+            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='k', linewidths=0.1, zorder=2)
             patch_collection.set_facecolor(section_color)
             ax.add_collection(patch_collection)
 
-    logging.debug('converting to pygame surface')
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
     plt.close(fig)
-
     canvas_size = canvas.get_width_height()
-    surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
     logging.debug('draw_map() done')
-    return surf
+    return raw_data, canvas_size
 
 
 def make_pie(size, values, labels, title):
@@ -374,12 +393,13 @@ def make_pie(size, values, labels, title):
     """
     logging.debug('make_pie(...,...,%s)', title)
     inches = size[1] / 100.0
-    fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout=True, facecolor='#000000')
+    fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='k')
     ax = fig.add_subplot(111)
-    ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'white'})
-    ax.set_title(title, color='white', size='xx-large', weight='bold')
+    ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'w'}, wedgeprops={'linewidth': 0.25},
+           colors=('b', 'g', 'r', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300'))
+    ax.set_title(title, color='white', size=48, weight='bold')
     handles, labels = ax.get_legend_handles_labels()
-    legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='best')
+    legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='lower left')  # best
     frame = legend.get_frame()
     frame.set_color((0, 0, 0, 0.75))
     frame.set_edgecolor('w')
@@ -394,9 +414,8 @@ def make_pie(size, values, labels, title):
     plt.close(fig)
 
     canvas_size = canvas.get_width_height()
-    surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
     logging.debug('make_pie(...,...,%s) done', title)
-    return surf
+    return raw_data, canvas_size
 
 
 def show_graph(screen, size, surf):
@@ -551,9 +570,10 @@ def qso_rates_chart(size, qsos_per_hour):
     logging.debug('make_plot(...,...,%s)', title)
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
-    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout=True, facecolor='black')
+    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
+
     ax = fig.add_subplot(111, axisbg='black')
-    ax.set_title(title, color='white', size='xx-large', weight='bold')
+    ax.set_title(title, color='white', size=48, weight='bold')
 
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
@@ -590,11 +610,8 @@ def qso_rates_chart(size, qsos_per_hour):
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
     plt.close(fig)
-
     canvas_size = canvas.get_width_height()
-    surf = pygame.image.fromstring(raw_data, canvas_size, "RGB")
-
-    return surf
+    return raw_data, canvas_size
 
 
 def draw_table(size, cell_text, title, font=None):
@@ -693,7 +710,9 @@ def draw_table(size, cell_text, title, font=None):
             surf.blit(text, textpos)
         y += row_height
     logging.debug('draw_table(...,%s) done', title)
-    return surf
+    size = surf.get_size()
+    data = pygame.image.tostring(surf, 'RGB')
+    return data, size
 
 
 def make_score_table(qso_band_modes):
@@ -759,9 +778,9 @@ def delta_time_to_string(delta_time):
 
 
 def update_crawl_message(crawl_messages):
-    now = datetime.datetime.utcnow()
     crawl_messages.set_message(0, EVENT_NAME)
-    crawl_messages.set_message_colors(0, BLUE, BLACK)
+    crawl_messages.set_message_colors(0, BRIGHT_BLUE, BLACK)
+    now = datetime.datetime.utcnow()
     crawl_messages.set_message(1, datetime.datetime.strftime(now, '%H:%M:%S'))
     if now < EVENT_START_TIME:
         delta = EVENT_START_TIME - now
@@ -800,14 +819,13 @@ class CrawlMessages:
 
     def crawl_message(self):
         if self.message_surfaces is None:
-            logging.info('creating surfaces')
             self.message_surfaces = [view_font.render(' ' + self.messages[0] + ' ', True,
                                                       self.message_colors[0][0],
                                                       self.message_colors[0][1])]
             self.first_x = self.size[0]
             self.last_added_index = 0
 
-        self.first_x -= 5 # JEFF
+        self.first_x -= 2 # JEFF
         rect = self.message_surfaces[0].get_rect()
         if self.first_x + rect.width < 0:
             self.message_surfaces = self.message_surfaces[1:]
@@ -840,33 +858,30 @@ class CrawlMessages:
                 break
 
 
-class UpdateThread(threading.Thread):
-    """
-    run the chart updates in their own thread, so the UI does not block.
-    """
+def update_charts(q, event, size):
+    try:
+        os.nice(10)
+    except AttributeError:
+        logging.warn("can't be nice to windows")
+    q.put((CRAWL_MESSAGE, 4, 'Chart engine starting...'))
+    base_map = create_map()
+    last_qso_timestamp = 0
+    q.put((CRAWL_MESSAGE, 4, ''))
 
-    def __init__(self, size, images, crawl_messages):
-        threading.Thread.__init__(self)
-        # super(UpdateThread, self).__init__()
-        self.event = threading.Event()
-        self.size = size
-        self.images = images
-        self.crawl_messages = crawl_messages
-
-    def run(self):
-
-        base_map = create_map()
-        last_qso_timestamp = 0
-        while not self.event.is_set():
+    try:
+        while not event.is_set():
             t0 = time.time()
-            last_qso_timestamp = load_data(self.size, self.images, self.crawl_messages, base_map, last_qso_timestamp)
+            last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
             t1 = time.time()
             delta = t1 - t0
             update_delay = DATA_DWELL_TIME - delta
             if update_delay < 0:
                 update_delay = DATA_DWELL_TIME
             logging.debug('Next data update in %f seconds', update_delay)
-            self.event.wait(update_delay)
+            event.wait(update_delay)
+    except Exception, e:
+        logging.exception('Exception in update_charts', exc_info=e)
+        q.put((CRAWL_MESSAGE, 4, 'Chart engine failed.'))
 
 
 def change_image(screen, size, images, image_index, delta):
@@ -884,74 +899,95 @@ def change_image(screen, size, images, image_index, delta):
 
 def main():
     logging.info('dashboard startup')
-    images = [None] * IMAGE_COUNT
+    q = multiprocessing.Queue()
+    process_event = multiprocessing.Event()
 
+    images = [None] * IMAGE_COUNT
     screen, size = init_display()
     display_size = (size[0], size[1] - view_font_height)
 
     logging.debug('display setup')
 
     images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
-
     crawl_messages = CrawlMessages(screen, size)
     update_crawl_message(crawl_messages)
 
-    thread = UpdateThread(display_size, images, crawl_messages)
-    thread.start()
+    proc = multiprocessing.Process(name='image-updater', target=update_charts, args=(q, process_event, display_size))
+    proc.start()
 
-    image_index = LOGO_IMAGE_INDEX
-    show_page(screen, size, images[LOGO_IMAGE_INDEX])
+    try:
+        image_index = LOGO_IMAGE_INDEX
+        show_page(screen, size, images[LOGO_IMAGE_INDEX])
 
-    pygame.time.set_timer(pygame.USEREVENT, 1000)
-    run = True
-    paused = False
+        pygame.time.set_timer(pygame.USEREVENT, 1000)
+        run = True
+        paused = False
 
-    display_update_timer = DISPLAY_DWELL_TIME
-    clock = pygame.time.Clock()
+        display_update_timer = DISPLAY_DWELL_TIME
+        clock = pygame.time.Clock()
 
-    while run:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                break
-            elif event.type == pygame.USEREVENT:
-                display_update_timer -= 1
-                if display_update_timer < 1:
-                    if paused:
-                        show_page(screen, size, images[image_index])
-                    else:
-                        image_index = change_image(screen, size, images, image_index, 1)
-                    display_update_timer = DISPLAY_DWELL_TIME
-                update_crawl_message(crawl_messages)
-            elif event.type == pygame.KEYDOWN:
-                if event.key == ord('q'):
-                    logging.debug('Q key pressed')
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     run = False
-                elif event.key == ord('n') or event.key == 275:
-                    logging.debug('next key pressed')
-                    image_index = change_image(screen, size, images, image_index, 1)
-                    display_update_timer = DISPLAY_DWELL_TIME
-                elif event.key == ord('p') or event.key == 276:
-                    logging.debug('prev key pressed')
-                    image_index = change_image(screen, size, images, image_index, -1)
-                    display_update_timer = DISPLAY_DWELL_TIME
-                elif event.key == 302:
-                    logging.debug('scroll lock key pressed')
-                    if paused:
+                    break
+                elif event.type == pygame.USEREVENT:
+                    display_update_timer -= 1
+                    if display_update_timer < 1:
+                        if paused:
+                            show_page(screen, size, images[image_index])
+                        else:
+                            image_index = change_image(screen, size, images, image_index, 1)
+                        display_update_timer = DISPLAY_DWELL_TIME
+                    update_crawl_message(crawl_messages)
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == ord('q'):
+                        logging.debug('Q key pressed')
+                        run = False
+                    elif event.key == ord('n') or event.key == 275:
+                        logging.debug('next key pressed')
+                        image_index = change_image(screen, size, images, image_index, 1)
+                        display_update_timer = DISPLAY_DWELL_TIME
+                    elif event.key == ord('p') or event.key == 276:
+                        logging.debug('prev key pressed')
                         image_index = change_image(screen, size, images, image_index, -1)
                         display_update_timer = DISPLAY_DWELL_TIME
-                    paused = not paused
-                else:
-                    logging.debug('event key=%d', event.key)
-        crawl_messages.crawl_message()
-        pygame.display.flip()
-        clock.tick(30)  # JEFF
+                    elif event.key == 302:
+                        logging.debug('scroll lock key pressed')
+                        if paused:
+                            image_index = change_image(screen, size, images, image_index, 1)
+                            display_update_timer = DISPLAY_DWELL_TIME
+                        paused = not paused
+                    else:
+                        logging.debug('event key=%d', event.key)
+                while not q.empty():
+                    payload = q.get()
+                    message_type = payload[0]
+                    if message_type == IMAGE_MESSAGE:
+                        # print payload
+                        n = payload[1]
+                        image = payload[2]
+                        image_size = payload[3]
+                        images[n] = pygame.image.frombuffer(image, image_size, IMAGE_FORMAT)
+                        logging.debug('received image %d', n)
+                    elif message_type == CRAWL_MESSAGE:
+                        n = payload[1]
+                        message = payload[2]
+                        crawl_messages.set_message(n, message)
+                        crawl_messages.set_message_colors(n, CYAN, BLACK)
 
-    pygame.time.set_timer(pygame.USEREVENT, 0)
-    logging.debug('stopping update thread')
-    thread.event.set()
-    logging.debug('waiting for update thread to stop...')
-    thread.join(60)
+            crawl_messages.crawl_message()
+            pygame.display.flip()
+            clock.tick(60)  # JEFF
+
+        pygame.time.set_timer(pygame.USEREVENT, 0)
+    except Exception, e:
+        logging.exception("Exception in main:", exc_info=e)
+
+    logging.debug('stopping update process')
+    process_event.set()
+    logging.debug('waiting for update process to stop...')
+    proc.join(60)
     logging.debug('update thread has stopped.')
     pygame.display.quit()
     logging.info('dashboard exit')
