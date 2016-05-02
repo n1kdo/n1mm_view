@@ -44,7 +44,7 @@ GRAY = pygame.Color('#cccccc')
 # Initialize font support
 pygame.font.init()
 view_font = pygame.font.Font('VeraMoBd.ttf', 64)
-bigger_font = pygame.font.SysFont('veraMoBd.ttf', 180)
+bigger_font = pygame.font.SysFont('VeraMoBd.ttf', 180)
 view_font_height = view_font.get_height()
 
 LOGO_IMAGE_INDEX = 0
