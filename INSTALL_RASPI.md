@@ -5,8 +5,22 @@
 1. open terminal window
 1. `$ sudo apt-get update` -- this takes about 2 minutes
 1. `$ sudo apt-get upgrade` -- this takes a while minutes.  Get a beer.
-1. `$ sudo apt-get install python-matplotlib` -- this takes a couple minutes. 
-1. `$ sudo apt-get install python-mpltoolkits.basemap` -- this takes a few minutes.
+1. `$ sudo apt-get install python27-dev` -- this takes a short minute.
+1. `$ sudo apt-get install python-pygame`
+1. `$ sudo pip install numpy` -- beer time again.  :beer:  There will likely be some compile warnings.
+Warnings are OK.  Errors are not.  This takes a while.
+1. `$ sudo pip install matplotlib` -- n1mm_view needs 1.5.0 or 1.5.1, so this has to be installed the hard way.
+Get another beer.  :beer:
+1. `$ sudo bash`
+1. `$ wget http://iweb.dl.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz `
+1. `$ tar xf basemap-1.0.7.tar.gz`
+1. `$ cd basemap-1.0.7/geos-3.3.3`
+1. `$ export GEOS_DIR=/usr/local`
+1. `$ ./configure --prefix=$GEOS_DIR`
+1. `$ make ; make install` -- beer time again.  :beer:
+1. `$ cd ..`
+1/ `$ python setup.py install`  -- again, you might see more warnings.  relax and have another beer.  :beer:
+1. `$ exit` -- this logs you out of the root account.
 1. `$ git clone https://github.com/n1kdo/n1mm_view.git`
 1. `$ cd n1mm_view`
 1. `$ ls`
