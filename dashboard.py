@@ -5,12 +5,12 @@ This program displays QSO statistics collected by the collector.
 """
 
 import logging
+import calendar
 import os
 import multiprocessing
 import pygame
 import sqlite3
 import time
-# import threading
 import matplotlib
 
 #  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
@@ -80,8 +80,11 @@ def load_data(size, q, base_map, last_qso_timestamp):
     qso_band_modes = []
     operator_qso_rates = []
     qsos_per_hour = []
+    qsos_by_section = {}
 
     db = None
+    data_updated = False
+    last_qso_time = last_qso_timestamp
 
     try:
         logging.debug('connecting to database')
@@ -101,8 +104,6 @@ def load_data(size, q, base_map, last_qso_timestamp):
             row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
             datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
             logging.debug(message)
-
-        data_updated = False
 
         logging.debug('old_timestamp = %d, timestamp = %d', last_qso_timestamp, last_qso_time)
         if last_qso_time != last_qso_timestamp:
@@ -183,16 +184,16 @@ def load_data(size, q, base_map, last_qso_timestamp):
                 qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
                 qsos_by_band[row[1]] += row[2]
 
-            for rec in qsos_per_hour:
+            for rec in qsos_per_hour:  # FIXME
                 rec[0] = datetime.datetime.utcfromtimestamp(rec[0])
                 t = rec[0].strftime('%H:%M:%S')
 
-            # load QSOs by Section
-            logging.debug('Load QSOs by Section')
-            qsos_by_section = {}
-            cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section;')
-            for row in cursor:
-                qsos_by_section[row[0]] = row[1]
+        # load QSOs by Section
+        logging.debug('Load QSOs by Section')
+        qsos_by_section = {}
+        cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section;')
+        for row in cursor:
+            qsos_by_section[row[0]] = row[1]
 
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
@@ -218,8 +219,8 @@ def load_data(size, q, base_map, last_qso_timestamp):
         enqueue_image(q, QSO_MODES_PIE_INDEX, image_data, image_size)
         image_data, image_size = qso_rates_chart(size, qsos_per_hour)
         enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size )
-        image_data, image_size = draw_map(size, qsos_by_section, base_map)
-        enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
+    image_data, image_size = draw_map(size, qsos_by_section, base_map)
+    enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
 
     return last_qso_time
 
@@ -575,13 +576,18 @@ def qso_rates_chart(size, qsos_per_hour):
     ax = fig.add_subplot(111, axisbg='black')
     ax.set_title(title, color='white', size=48, weight='bold')
 
+    st = calendar.timegm(EVENT_START_TIME.timetuple())
+    lt = calendar.timegm(qsos_per_hour[-1][0].timetuple())
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
         colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
         labels = Bands.BANDS_TITLE[1:]
-        # ax.set_autoscalex_on(True)
-        start_date = matplotlib.dates.date2num(EVENT_START_TIME)
-        end_date = matplotlib.dates.date2num(EVENT_END_TIME)
+        if lt < st:
+            start_date = dates[0]  #  matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
+            end_date = dates[-1]   # matplotlib.dates.date2num(qsos_per_hour[-1][0].timetuple())
+        else:
+            start_date = matplotlib.dates.date2num(EVENT_START_TIME)
+            end_date = matplotlib.dates.date2num(EVENT_END_TIME)
         ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
@@ -785,7 +791,7 @@ def update_crawl_message(crawl_messages):
     if now < EVENT_START_TIME:
         delta = EVENT_START_TIME - now
         crawl_messages.set_message(2, 'The Contest starts in ' + delta_time_to_string(delta))
-        crawl_messages.set_message_colors(2, GREEN, BLACK)
+        crawl_messages.set_message_colors(2, WHITE, BLUE)
     elif now < EVENT_END_TIME:
         delta = EVENT_END_TIME - now
         crawl_messages.set_message(2, 'The contest ends in ' + delta_time_to_string(delta))
@@ -881,7 +887,7 @@ def update_charts(q, event, size):
             event.wait(update_delay)
     except Exception, e:
         logging.exception('Exception in update_charts', exc_info=e)
-        q.put((CRAWL_MESSAGE, 4, 'Chart engine failed.'))
+        q.put((CRAWL_MESSAGE, 4, 'Chart engine failed.', YELLOW, RED))
 
 
 def change_image(screen, size, images, image_index, delta):
@@ -973,8 +979,14 @@ def main():
                     elif message_type == CRAWL_MESSAGE:
                         n = payload[1]
                         message = payload[2]
+                        fg = CYAN
+                        bg = BLACK
+                        if len(payload) > 3:
+                            fg = payload[3]
+                        if len(payload) > 4:
+                            bg = payload[4]
                         crawl_messages.set_message(n, message)
-                        crawl_messages.set_message_colors(n, CYAN, BLACK)
+                        crawl_messages.set_message_colors(n, fg, bg)
 
             crawl_messages.crawl_message()
             pygame.display.flip()
