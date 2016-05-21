@@ -1,14 +1,16 @@
 # n1mm_view
 
-`n1mm_view` is a set of python scripts to display real-time contest QSO statistics for :zap: N4N ARRL Field Day.
+`n1mm_view` is a set of python scripts to display real-time contest QSO
+ statistics for :zap: N4N ARRL Field Day.
 
-It listens to N1MM+ "Contact Info" UDP broadcasts 
-(see the [N1MM+ documentation](http://n1mm.hamdocs.com/tiki-index.php?page=UDP+Broadcasts))
-and collects the contact info into a database.  The contact info data is used to create useful data screens that 
-are rotated through.
+It listens to N1MM+ "Contact Info" UDP broadcasts (see the 
+[N1MM+ documentation](http://n1mm.hamdocs.com/tiki-index.php?page=UDP+Broadcasts))
+and collects the contact info into a database.  The contact info data 
+is used to create useful data screens that are rotated through.
 
-It was built to run on a Raspberry Pi and to display the statistics on a large television screen.  It should 
-run anywhere its dependencies can be installed on, meaning it should work on Linux, Windows, and OS X.
+It was built to run on a Raspberry Pi and to display the statistics 
+on a large television screen.  It should run anywhere its dependencies 
+can be installed on, meaning it should work on Linux, Windows, and OS X.
 
 Currently, it supports the following displays:
 
@@ -18,6 +20,9 @@ Currently, it supports the following displays:
 * QSOs by Station Pie chart
 * QSOs Summary Table
 * QSO/Hour Rate Table
+* Top 5 Operators by QSO Count Table
+* QSOs/Hour/Band stacked chart
+* Sections Worked Choropleth Map, shows all US and Canada sections.
 
 ### Dependencies:
 
@@ -49,10 +54,8 @@ All Rights Reserved
 
 There's always more to do.  This project is still in late-prototype stage.
 
-* fix colors of matplotlib pie charts.  A white slice with white text is unreadable.
 * add command-line options
 * somebody might want to support other contests besides field day
-  * choropleth map to show areas worked
   * multipliers table
 * the `qso_log` table could be exported to ADIF.
 * drink beer :beer:

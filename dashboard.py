@@ -101,8 +101,8 @@ def load_data(size, q, base_map, last_qso_timestamp):
         for row in cursor:
             last_qso_time = row[0]
             message = 'Last QSO: %s %s %s on %s by %s at %s' % (
-            row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
-            datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
+                row[1], row[2], row[3], Bands.BANDS_TITLE[row[5]], row[4],
+                datetime.datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
             logging.debug(message)
 
         logging.debug('old_timestamp = %d, timestamp = %d', last_qso_timestamp, last_qso_time)
@@ -203,7 +203,7 @@ def load_data(size, q, base_map, last_qso_timestamp):
         db.close()
 
     if data_updated:
-        image_data, image_size =  qso_summary_table(size, qso_band_modes)
+        image_data, image_size = qso_summary_table(size, qso_band_modes)
         enqueue_image(q, QSO_COUNTS_TABLE_INDEX, image_data, image_size)
         image_data, image_size = qso_rates_table(size, operator_qso_rates)
         enqueue_image(q, QSO_RATES_TABLE_INDEX, image_data, image_size)
@@ -218,7 +218,7 @@ def load_data(size, q, base_map, last_qso_timestamp):
         image_data, image_size = qso_modes_graph(size, qso_band_modes)
         enqueue_image(q, QSO_MODES_PIE_INDEX, image_data, image_size)
         image_data, image_size = qso_rates_chart(size, qsos_per_hour)
-        enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size )
+        enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size)
     image_data, image_size = draw_map(size, qsos_by_section, base_map)
     enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
 
@@ -321,7 +321,7 @@ def draw_map(size, qsos_by_section, my_map):
     my_map.fillcontinents(color=earth, lake_color=water)
 
     # mark our QTH
-    x,y = my_map(QTH_LONGITUDE, QTH_LATITUDE)
+    x, y = my_map(QTH_LONGITUDE, QTH_LATITUDE)
     my_map.plot(x, y, '.', color='r')
     my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
 
@@ -332,7 +332,7 @@ def draw_map(size, qsos_by_section, my_map):
 
     legend_patches = []
     last_bin = 0
-    for i in range(0,num_colors):
+    for i in range(0, num_colors):
         bin_max = ranges[i]
         if bin_max == 0:
             label = '0'
@@ -520,7 +520,7 @@ def qso_modes_graph(size, qso_band_modes):
     for i in range(0, Bands.count()):
         for mode_num in range(1, len(Modes.SIMPLE_MODES_LIST)):
             mode_data[mode_num][1] += qso_band_modes[i][mode_num]
-            total +=  qso_band_modes[i][mode_num]
+            total += qso_band_modes[i][mode_num]
 
     if total == 0:
         return None
@@ -583,8 +583,8 @@ def qso_rates_chart(size, qsos_per_hour):
         colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
         labels = Bands.BANDS_TITLE[1:]
         if lt < st:
-            start_date = dates[0]  #  matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
-            end_date = dates[-1]   # matplotlib.dates.date2num(qsos_per_hour[-1][0].timetuple())
+            start_date = dates[0]  # matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
+            end_date = dates[-1]  # matplotlib.dates.date2num(qsos_per_hour[-1][0].timetuple())
         else:
             start_date = matplotlib.dates.date2num(EVENT_START_TIME)
             end_date = matplotlib.dates.date2num(EVENT_END_TIME)
@@ -831,7 +831,7 @@ class CrawlMessages:
             self.first_x = self.size[0]
             self.last_added_index = 0
 
-        self.first_x -= 2 # JEFF
+        self.first_x -= 2  # JEFF
         rect = self.message_surfaces[0].get_rect()
         if self.first_x + rect.width < 0:
             self.message_surfaces = self.message_surfaces[1:]
