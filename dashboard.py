@@ -790,12 +790,17 @@ def update_crawl_message(crawl_messages):
     crawl_messages.set_message(1, datetime.datetime.strftime(now, '%H:%M:%S'))
     if now < EVENT_START_TIME:
         delta = EVENT_START_TIME - now
+        seconds = delta.total_seconds()
+        print seconds
+        bg = BLUE if seconds > 3600 else RED
         crawl_messages.set_message(2, 'The Contest starts in ' + delta_time_to_string(delta))
-        crawl_messages.set_message_colors(2, WHITE, BLUE)
+        crawl_messages.set_message_colors(2, WHITE, bg)
     elif now < EVENT_END_TIME:
         delta = EVENT_END_TIME - now
+        seconds = delta.total_seconds()
+        fg = YELLOW if seconds > 3600 else ORANGE
         crawl_messages.set_message(2, 'The contest ends in ' + delta_time_to_string(delta))
-        crawl_messages.set_message_colors(2, YELLOW, BLACK)
+        crawl_messages.set_message_colors(2, fg, BLACK)
     else:
         crawl_messages.set_message(2, 'The contest is over.')
         crawl_messages.set_message_colors(2, RED, BLACK)
@@ -996,12 +1001,15 @@ def main():
     except Exception, e:
         logging.exception("Exception in main:", exc_info=e)
 
+    pygame.display.quit()
     logging.debug('stopping update process')
     process_event.set()
     logging.debug('waiting for update process to stop...')
     proc.join(60)
+    if proc.is_alive():
+        logging.warn('chart engine did not exit upon request, killing.')
+        proc.terminate()
     logging.debug('update thread has stopped.')
-    pygame.display.quit()
     logging.info('dashboard exit')
 
 
