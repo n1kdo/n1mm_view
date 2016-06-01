@@ -225,8 +225,9 @@ def load_data(size, q, base_map, last_qso_timestamp):
     return last_qso_time
 
 
-def enqueue_image(q, id, data, size):
-    q.put((IMAGE_MESSAGE, id, data, size))
+def enqueue_image(q, id, image_data, size):
+    if image_data is not None:
+        q.put((IMAGE_MESSAGE, id, image_data, size))
 
 
 def init_display():
@@ -326,22 +327,28 @@ def draw_map(size, qsos_by_section, my_map):
     my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
 
     logging.debug('setting shapes')
-    ranges = [0, 5, 10, 20, 50, 100, 200, 500, 1000]
+    ranges = [0, 5, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
     num_colors = len(ranges)
-    color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
+    #color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
+    color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
 
     legend_patches = []
     last_bin = 0
     for i in range(0, num_colors):
         bin_max = ranges[i]
+        color = color_palette[i]
         if bin_max == 0:
             label = '0'
+            color = 'k'
         elif bin_max == -1:
             label = '%d +' % (last_bin + 1)
         else:
             label = '%d - %d' % (last_bin + 1, bin_max)
             last_bin = bin_max
-        legend_patches.append(matplotlib.patches.Patch(color=color_palette[i], label=label))
+        legend_patches.append(matplotlib.patches.Patch(color=color, label=label))
+    label = '> %d' % last_bin
+    color = color_palette[num_colors]
+    legend_patches.append(matplotlib.patches.Patch(color=color, label=label))
     legend = ax.legend(handles=legend_patches)
     frame = legend.get_frame()
     frame.set_color((0, 0, 0, 0.75))
@@ -363,16 +370,16 @@ def draw_map(size, qsos_by_section, my_map):
                 if range_max == -1 or qsos <= range_max:
                     break
                 color_index += 1
-                if color_index == num_colors - 1:
+                if color_index == num_colors:
                     break
 
-            section_color = color_palette[color_index]
+            section_color = 'k' if color_index == 0 else color_palette[color_index]
             # logging.debug('%s %d %d', section_name, qsos, color_index)
 
             patches = []
             for ss in shape:
                 patches.append(matplotlib.patches.Polygon(np.array(ss), True))
-            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='k', linewidths=0.1, zorder=2)
+            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='w', linewidths=0.1, zorder=2)
             patch_collection.set_facecolor(section_color)
             ax.add_collection(patch_collection)
 
@@ -436,7 +443,7 @@ def qso_operators_graph(size, qso_operators):
     """
     # calculate QSO by Operator
     if qso_operators is None or len(qso_operators) == 0:
-        return None
+        return None, (0 ,0)
     labels = []
     values = []
     for d in qso_operators:
@@ -450,7 +457,7 @@ def qso_operators_table(size, qso_operators):
     create the Top 5 QSOs by Operators table
     """
     if len(qso_operators) == 0:
-        return None
+        return None, (0 ,0)
 
     count = 0
     cells = [['Operator', 'QSOs']]
@@ -461,7 +468,7 @@ def qso_operators_table(size, qso_operators):
             break
 
     if count == 0:
-        return None
+        return None, (0 ,0)
     else:
         return draw_table(size, cells, "Top 5 Operators", bigger_font)
 
@@ -471,7 +478,7 @@ def qso_stations_graph(size, qso_stations):
     create the QSOs by Station pie chart
     """
     if qso_stations is None or len(qso_stations) == 0:
-        return None
+        return None, (0 ,0)
     labels = []
     values = []
     # for d in qso_stations:
@@ -486,7 +493,7 @@ def qso_bands_graph(size, qso_band_modes):
     create the QSOs by Band pie chart
     """
     if qso_band_modes is None or len(qso_band_modes) == 0:
-        return None
+        return None, (0 ,0)
 
     labels = []
     values = []
@@ -497,7 +504,7 @@ def qso_bands_graph(size, qso_band_modes):
         total += band_data[i][1]
 
     if total == 0:
-        return None
+        return None, (0 ,0)
 
     for bd in sorted(band_data[1:], key=lambda count: count[1], reverse=True):
         if bd[1] > 0:
@@ -511,7 +518,7 @@ def qso_modes_graph(size, qso_band_modes):
     create the QSOs by Mode pie chart
     """
     if qso_band_modes is None or len(qso_band_modes) == 0:
-        return None
+        return None, (0 ,0)
 
     labels = []
     values = []
@@ -523,7 +530,7 @@ def qso_modes_graph(size, qso_band_modes):
             total += qso_band_modes[i][mode_num]
 
     if total == 0:
-        return None
+        return None, (0 ,0)
 
     for md in sorted(mode_data[1:], key=lambda count: count[1], reverse=True):
         if md[1] > 0:
@@ -543,8 +550,8 @@ def qso_rates_table(size, operator_qso_rates):
     """
     create the QSO Rates by Operator table
     """
-    if len(operator_qso_rates) < 3:
-        return None
+    if operator_qso_rates is None or len(operator_qso_rates) < 3:
+        return None, (0 ,0)
     else:
         return draw_table(size, operator_qso_rates, "QSO/Hour Rates")
 
@@ -558,7 +565,7 @@ def qso_rates_chart(size, qsos_per_hour):
     qso_counts = [[], [], [], [], [], [], [], [], [], []]
 
     if qsos_per_hour is None or len(qsos_per_hour) == 0:
-        return None
+        return None, (0 ,0)
 
     data_valid = len(qsos_per_hour) != 0
 
