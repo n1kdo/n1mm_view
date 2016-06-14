@@ -256,13 +256,15 @@ def init_display():
         raise Exception('No suitable video driver found!')
 
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+    pygame.mouse.set_visible(0)
     if driver != 'directx':  # debugging hack runs in a window on Windows
-        pygame.mouse.set_visible(0)
         screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
     else:
         logging.info('running in windowed mode')
-        size = (1680, 1050)
-        screen = pygame.display.set_mode(size)
+        # set window origin for windowed usage
+        os.putenv('SDL_VIDEO_WINDOW_POS', '0,0')
+        # size = (size[0]-10, size[1] - 30)
+        screen = pygame.display.set_mode(size,pygame.NOFRAME)
 
     logging.debug('display size: %d x %d', size[0], size[1])
     # Clear the screen to start
@@ -798,7 +800,6 @@ def update_crawl_message(crawl_messages):
     if now < EVENT_START_TIME:
         delta = EVENT_START_TIME - now
         seconds = delta.total_seconds()
-        print seconds
         bg = BLUE if seconds > 3600 else RED
         crawl_messages.set_message(2, 'The Contest starts in ' + delta_time_to_string(delta))
         crawl_messages.set_message_colors(2, WHITE, bg)
@@ -982,7 +983,6 @@ def main():
                     payload = q.get()
                     message_type = payload[0]
                     if message_type == IMAGE_MESSAGE:
-                        # print payload
                         n = payload[1]
                         image = payload[2]
                         image_size = payload[3]
