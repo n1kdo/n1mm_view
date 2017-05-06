@@ -29,17 +29,27 @@ Currently, it supports the following displays:
 
 ### QSOs by Section:
 
-![QSOs by Section](qsos_by_section.png)
+![QSOs by Section](examples/qsos_by_section.png)
 
 ### QSO Rate Chart:
 
-![QSO Rates Chart](qso_rates_chart.png)
+![QSO Rates Chart](examples/qso_rates_chart.png)
 
 ### QSOs by Operator Chart:
 
-![QSOs by Operator Chart](qso_operators_graph.png)
+![QSOs by Operator Chart](examples/qso_operators_graph.png)
 
-![QSO Summary Table](qso_summary_table.png)
+### Summary Table:
+
+![QSO Summary Table](examples/qso_summary_table.png)
+
+### QSOs by Operator Table:
+
+![QSOs by Operator Table](examples/qso_operators_table.png)
+
+### QSO Rates Table:
+
+![QSO Rates Table](examples/qso_rates_table.png)
 
 ## Dependencies:
 
@@ -55,6 +65,9 @@ Currently, it supports the following displays:
 * n1mm_view_constants.py -- constant values shared by collector and dashboard.  Bands and Modes are defined here.
 * n1mm_view_config.py -- configuration data.  in theory, the only part you should need to edit to configure n1mm_view for your environment.
 * replayer.py -- test application, "replays" an old N1MM+ log to test collector and dashboard.
+* init/n1mm_view_collector.service -- systemd control file, starts collector at boot
+* init/n1mm_view_dashboard.service -- systemd control file, starts dashboard at boot
+* shapes/* -- map shapes for every US section. Thank you, Charles.
 
 ## Installation
 
@@ -100,7 +113,7 @@ The dashboard should start up.  Eventually, graphs and tables will be displayed.
 
 This software is licensed under the terms of the "Simplified BSD license", see [LICENSE](LICENSE).
 
-Copyright 2016, Jeffrey B. Otterson, N1KDO  
+Copyright 2016, 2017 Jeffrey B. Otterson, N1KDO  
 All Rights Reserved
 
 ## To Do
@@ -111,3 +124,10 @@ There's always more to do.  This project is still in late-prototype stage.
 * somebody might want to support other contests besides field day
   * multipliers table
 * the `qso_log` table could be exported to ADIF.
+* A help option ("?" key?) for the dashboard to display what keys do what. 
+* A save option to save the graphics for later viewing
+* I have considered making the dashboard app into a web app so the app
+could run "headless" and users could view the graphics locally.
+
+GitHub pull requests will be happily looked at, and the odds are good that
+they will be merged.

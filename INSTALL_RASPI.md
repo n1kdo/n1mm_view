@@ -44,7 +44,28 @@ The dashboard responds to two keystrokes:
 * 'n' -- show the next display page
 * 'q' -- exit the dashboard
 
-You can flush the collected statistics (perhaps immediately before the contest starts) 
-by shutting down the collector and dashboard and then deleting the database: 
+You can flush the collected statistics (perhaps immediately before the 
+contest starts) by shutting down the collector and dashboard and then
+deleting the database: 
+
 `$ rm n1mm_view.db` -- then restart the collector immediately.
 
+## How to install the autostart scripts
+
+You can install systemd configuration files on your system to make the 
+collector and dashboard processes start automatically at boot time.
+
+1. get root (sudo bash, or whatever way you like)
+1. `cp init/*.service /lib/systemd/system`
+1. `systemctl enable n1mm_view_collector`
+1. `systemctl enable n1mm_view_dashboard`
+
+Upon reboot, the collector and dashboard should start automatically.  
+Consider this rather experimental at this time.  It might work.
+It works for me.
+
+## Challenges, "Gotchas", and Caveat Emptor
+
+My experience is that this all works better if you have static IP addresses
+for every computer running N1MM+ and the Raspberry Pi.  Configuration of 
+static IP is beyond the scope of this document.
