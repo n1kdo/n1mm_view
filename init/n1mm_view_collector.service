@@ -1,0 +1,27 @@
+#
+# /lib/systemd/system/n1mm_view_collector.service
+#
+# systemd startup file for n1mm_view collector process 
+#
+
+[Unit]
+Description=N1MM View Collector process
+After=gettty@tty2.service
+
+[Service]
+User=pi
+Group=pi
+Type=simple
+WorkingDirectory=/home/pi/n1mm_view
+ExecStart=/home/pi/n1mm_view/collector.py
+Restart=always
+RestartSec=30
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=default.target
