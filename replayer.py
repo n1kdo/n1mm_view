@@ -11,6 +11,7 @@ installation (32- vs. 64-bit.)
 """
 
 import logging
+import random
 import sqlite3
 import time
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
@@ -122,7 +123,8 @@ def main():
         logging.info("sent qso # %d timestamp %s" % (qso_number, ts))
         # there are ~4000 qsos in the database.
         # 4/sec will take ~1000 sec --> 17 minutes to play back -- the entire contest.
-        time.sleep(0.25)
+        # random.random returns a number from 0 to 1, so this will average about 2/sec.
+        time.sleep(random.random()/10.0)
 
     db.close()
 

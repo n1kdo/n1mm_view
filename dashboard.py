@@ -10,6 +10,7 @@ import os
 import multiprocessing
 import pygame
 import sqlite3
+import sys
 import time
 import matplotlib
 
@@ -68,6 +69,11 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
+
+def save_image(image_data, image_size, filename):
+    surface = pygame.image.frombuffer(image_data, image_size, IMAGE_FORMAT)
+    pygame.image.save(surface, filename)
+    pass
 
 def load_data(size, q, base_map, last_qso_timestamp):
     """
@@ -195,32 +201,63 @@ def load_data(size, q, base_map, last_qso_timestamp):
         for row in cursor:
             qsos_by_section[row[0]] = row[1]
 
+        q.put((CRAWL_MESSAGE, 0, ''))
+
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
         logging.exception(error)
-        logging.warn('could not load data, database error')
-    if db is not None:
-        db.close()
+        q.put((CRAWL_MESSAGE, 0, 'database read error', YELLOW, RED))
+        return
+    finally:
+        if db is not None:
+            db.close()
 
     if data_updated:
-        image_data, image_size = qso_summary_table(size, qso_band_modes)
-        enqueue_image(q, QSO_COUNTS_TABLE_INDEX, image_data, image_size)
-        image_data, image_size = qso_rates_table(size, operator_qso_rates)
-        enqueue_image(q, QSO_RATES_TABLE_INDEX, image_data, image_size)
-        image_data, image_size = qso_operators_graph(size, qso_operators)
-        enqueue_image(q, QSO_OPERATORS_PIE_INDEX, image_data, image_size)
-        image_data, image_size = qso_operators_table(size, qso_operators)
-        enqueue_image(q, QSO_OPERATORS_TABLE_INDEX, image_data, image_size)
-        image_data, image_size = qso_stations_graph(size, qso_stations)
-        enqueue_image(q, QSO_STATIONS_PIE_INDEX, image_data, image_size)
-        image_data, image_size = qso_bands_graph(size, qso_band_modes)
-        enqueue_image(q, QSO_BANDS_PIE_INDEX, image_data, image_size)
-        image_data, image_size = qso_modes_graph(size, qso_band_modes)
-        enqueue_image(q, QSO_MODES_PIE_INDEX, image_data, image_size)
-        image_data, image_size = qso_rates_chart(size, qsos_per_hour)
-        enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size)
-    image_data, image_size = draw_map(size, qsos_by_section, base_map)
-    enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
+        try:
+            image_data, image_size = qso_summary_table(size, qso_band_modes)
+            enqueue_image(q, QSO_COUNTS_TABLE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_rates_table(size, operator_qso_rates)
+            enqueue_image(q, QSO_RATES_TABLE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_operators_graph(size, qso_operators)
+            enqueue_image(q, QSO_OPERATORS_PIE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_operators_table(size, qso_operators)
+            enqueue_image(q, QSO_OPERATORS_TABLE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_stations_graph(size, qso_stations)
+            enqueue_image(q, QSO_STATIONS_PIE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_bands_graph(size, qso_band_modes)
+            enqueue_image(q, QSO_BANDS_PIE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_modes_graph(size, qso_band_modes)
+            enqueue_image(q, QSO_MODES_PIE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = qso_rates_chart(size, qsos_per_hour)
+            enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size)
+        except Exception as e:
+            logging.exception(e)
+    try:
+        image_data, image_size = draw_map(size, qsos_by_section, base_map)
+        enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
+    except Exception as e:
+        logging.exception(e)
 
     return last_qso_time
 
@@ -801,16 +838,16 @@ def update_crawl_message(crawl_messages):
         delta = EVENT_START_TIME - now
         seconds = delta.total_seconds()
         bg = BLUE if seconds > 3600 else RED
-        crawl_messages.set_message(2, 'The Contest starts in ' + delta_time_to_string(delta))
+        crawl_messages.set_message(2, '%s starts in %s' % (EVENT_NAME, delta_time_to_string(delta)))
         crawl_messages.set_message_colors(2, WHITE, bg)
     elif now < EVENT_END_TIME:
         delta = EVENT_END_TIME - now
         seconds = delta.total_seconds()
         fg = YELLOW if seconds > 3600 else ORANGE
-        crawl_messages.set_message(2, 'The contest ends in ' + delta_time_to_string(delta))
+        crawl_messages.set_message(2, '%s ends in %s' % (EVENT_NAME, delta_time_to_string(delta)))
         crawl_messages.set_message_colors(2, fg, BLACK)
     else:
-        crawl_messages.set_message(2, 'The contest is over.')
+        crawl_messages.set_message(2, '%s is over.' % EVENT_NAME)
         crawl_messages.set_message_colors(2, RED, BLACK)
 
 
@@ -922,7 +959,12 @@ def main():
     process_event = multiprocessing.Event()
 
     images = [None] * IMAGE_COUNT
-    screen, size = init_display()
+    try:
+        screen, size = init_display()
+    except Exception, e:
+        logging.exception('Could not initialize display.', exc_info=e)
+        sys.exit(1)
+
     display_size = (size[0], size[1] - view_font_height)
 
     logging.debug('display setup')
