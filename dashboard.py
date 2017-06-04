@@ -13,6 +13,7 @@ import sqlite3
 import sys
 import time
 import matplotlib
+import re
 
 #  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
 #  But... it MUST be RIGHT HERE so matplotlib does not try to use the wrong backend.
@@ -64,12 +65,24 @@ IMAGE_MESSAGE = 1
 CRAWL_MESSAGE = 2
 
 IMAGE_FORMAT = 'RGB'
+SAVE_PNG = False
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
+logging.debug("Checking for HTML_DIR")
+if 'HTML_DIR' in globals():
+   SAVE_PNG = True
+   logging.debug("HTML_DIR set to %s - Will create PNG files" % HTML_DIR)
+   # Check if the dir given exists and create if necessary
+   if not os.path.exists(HTML_DIR):
+      logging.error("%s did not exist - creating but check Apache permissions" % HTML_DIR)
+      os.makedirs(HTML_DIR)
 
+def makePNGTitle(title):
+    return ''.join([HTML_DIR,'/',re.sub('[^\w\-_]', '_', title),'.png'])
+    
 def save_image(image_data, image_size, filename):
     surface = pygame.image.frombuffer(image_data, image_size, IMAGE_FORMAT)
     pygame.image.save(surface, filename)
@@ -98,6 +111,13 @@ def load_data(size, q, base_map, last_qso_timestamp):
         cursor = db.cursor()
         logging.debug('database connected')
 
+        
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+           cursor.execute('SELECT timestamp, callsign, section FROM qso_log')
+           for row in cursor: 
+              logging.debug('QSO: %s\t%s\t%s' % (row[0], row[1], row[2])) 
+        
+        
         # get timestamp from the last record in the database
         cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
@@ -342,7 +362,7 @@ def create_map():
 
 
 def draw_map(size, qsos_by_section, my_map):
-    logging.debug('draw_map()')
+    logging.debug('draw_section map()')
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
@@ -366,7 +386,7 @@ def draw_map(size, qsos_by_section, my_map):
     my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
 
     logging.debug('setting shapes')
-    ranges = [0, 5, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
+    ranges = [0, 1, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
     num_colors = len(ranges)
     #color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
@@ -411,7 +431,7 @@ def draw_map(size, qsos_by_section, my_map):
                 color_index += 1
                 if color_index == num_colors:
                     break
-
+                        
             section_color = 'k' if color_index == 0 else color_palette[color_index]
             # logging.debug('%s %d %d', section_name, qsos, color_index)
 
@@ -426,7 +446,15 @@ def draw_map(size, qsos_by_section, my_map):
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
+    if SAVE_PNG:
+       logging.debug('Saving PNG file')
+       try:
+          fig.savefig(makePNGTitle('sections'))
+       except:
+       	 logging.exception("Error writing file %s" % makePNGTitle(title))
+       
     plt.close(fig)
+    
     canvas_size = canvas.get_width_height()
     logging.debug('draw_map() done')
     return raw_data, canvas_size
@@ -445,6 +473,7 @@ def make_pie(size, values, labels, title):
     ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'w'}, wedgeprops={'linewidth': 0.25},
            colors=('b', 'g', 'r', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300'))
     ax.set_title(title, color='white', size=48, weight='bold')
+    
     handles, labels = ax.get_legend_handles_labels()
     legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='lower left')  # best
     frame = legend.get_frame()
@@ -458,6 +487,14 @@ def make_pie(size, values, labels, title):
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
+    
+    
+    if SAVE_PNG:
+       logging.debug('Saving PNG as %s' % makePNGTitle(title))
+       try:
+          fig.savefig(makePNGTitle(title),facecolor=fig.get_facecolor(), edgecolor='none')
+       except:
+          logging.exception("Error writing file %s" % makePNGTitle(title))
     plt.close(fig)
 
     canvas_size = canvas.get_width_height()
@@ -656,11 +693,19 @@ def qso_rates_chart(size, qsos_per_hour):
         hour_formatter = DateFormatter('%H')
         ax.xaxis.set_major_locator(hour_locator)
         ax.xaxis.set_major_formatter(hour_formatter)
-
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
+    
+    if SAVE_PNG:
+       logging.debug('Saving PNG as %s' % makePNGTitle(title))
+       try:
+          fig.savefig(makePNGTitle(title),facecolor=fig.get_facecolor(), edgecolor='none')
+       except:
+       	 logging.exception("Error writing file %s" % makePNGTitle(title))
+       	 
+    
     plt.close(fig)
     canvas_size = canvas.get_width_height()
     return raw_data, canvas_size
@@ -764,6 +809,15 @@ def draw_table(size, cell_text, title, font=None):
     logging.debug('draw_table(...,%s) done', title)
     size = surf.get_size()
     data = pygame.image.tostring(surf, 'RGB')
+    
+    if SAVE_PNG:
+       logging.debug('Saving table PNG as %s' % makePNGTitle(title))
+       try:
+          pygame.image.save(surf,makePNGTitle(title))
+       except:
+       	 logging.exception("Error writing file %s" % makePNGTitle(title))
+       
+    
     return data, size
 
 
