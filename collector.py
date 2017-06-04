@@ -176,14 +176,32 @@ def record_contact(db, cursor, operators, stations,
 
     db.commit()
 
+def delete_contact(db, cursor, timestamp, station, callsign):
+    """
+    Delete the results of a delete in N1MM
+    """
+    
+    """ station_id = stations.lookup_station_id(station)
+"""
+
+    logging.info('DELETEQSO: %s, timestamp = %s' % (callsign,calendar.timegm(timestamp)))
+    try:
+       cursor.execute(
+        "delete from qso_log where callsign = ? and timestamp = ?" ,(callsign, calendar.timegm(timestamp),))
+       db.commit()
+    except Exception as e:
+       logging.exception('Exception deleting contact from db.')
+       return ''
+   
+
 
 def process_message(db, cursor, operators, stations, data, seen):
     """
     Process a N1MM+ contactinfo message
     """
-
+    #logging.debug(data)
     dom = parseString(data)
-    if dom.getElementsByTagName("contactinfo").length == 1:
+    if dom.getElementsByTagName("contactinfo").length == 1 or dom.getElementsByTagName("contactreplace").length == 1:
         checksum_value = checksum(data)
         if checksum_value in seen:
             logging.debug('duplicate message')
@@ -194,7 +212,7 @@ def process_message(db, cursor, operators, stations, data, seen):
         band = get_from_dom(dom, "band")
         mode = get_from_dom(dom, "mode")
         operator = get_from_dom(dom, "operator")
-        station_name = get_from_dom(dom, "NetBiosName")
+        station_name = get_from_dom(dom, "StationName")
         station = station_name
         rx_freq = int(get_from_dom(dom, "rxfreq")) * 10  # convert to Hz
         tx_freq = int(get_from_dom(dom, "txfreq")) * 10
@@ -212,8 +230,21 @@ def process_message(db, cursor, operators, stations, data, seen):
                        timestamp, mycall, band, mode, operator, station,
                        rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                        exchange, section, comment)
+    elif dom.getElementsByTagName("RadioInfo").length == 1:
+       logging.debug("Received radioInfo message")
+    elif dom.getElementsByTagName("contactdelete").length == 1:
+       qso_timestamp = get_from_dom(dom, "timestamp")
+       callsign = get_from_dom(dom, "call")
+       station_name = get_from_dom(dom, "StationName")
+       station = station_name
+       # convert qso_timestamp to datetime object
+       timestamp = convert_timestamp(qso_timestamp)
+       delete_contact(db, cursor, timestamp, station, callsign)
+    elif dom.getElementsByTagName("dynamicresults").length == 1:
+       logging.debug("Received Score message")   
     else:
         logging.warn('unknown message received, ignoring.')
+        logging.debug(data)
 
 
 def listener(db, cursor):
