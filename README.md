@@ -8,7 +8,7 @@ It listens to N1MM+ or TR4W "Contact Info" UDP broadcasts (see the
 and collects the contact info into a database.  The contact info data 
 is used to create useful data screens that are continuously rotated.
 
-The contactchange and contactdelete UDP messages are also handles for changes made to the data in the logging program.
+The contactchange and contactdelete UDP messages are also handled for changes made to the data in the logging program.
 
 It was built to run on a Raspberry Pi and to display the statistics 
 on a large television screen.  It should run anywhere its dependencies 
@@ -99,7 +99,7 @@ You may wish to delete the n1mm_view.db database file to reset the counts to zer
 
 In one login session, start the collector:  $ ./collector.py 
 
-THe collector should display output for every QSO message it receives.  This is a good thing.
+The collector should display output for every QSO message it receives.  This is a good thing.
 
 Control-C will stop the collector.
 
