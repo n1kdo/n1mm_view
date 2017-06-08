@@ -1009,7 +1009,32 @@ def change_image(screen, size, images, image_index, delta):
 
 def main():
     logging.info('dashboard startup')
+    
     q = multiprocessing.Queue()
+    if 'HTML_ONLY' in globals():
+		 if HTML_ONLY:
+			 logging.info('HTML ONLY so no screen will appear')
+			 # Setup simple loop to call load_data and then wait for the interval
+			 base_map = create_map()
+			 last_qso_timestamp = 0
+			 if not ('PNG_HEIGHT' in globals() and 'PNG_WIDTH' in globals()):
+				 logging.info('PNG_HEIGHT and/or PNG_WIDTH not specified in config file - Using 800x600') 
+				 size = (800, 600)
+			 else:
+				 size = (PNG_HEIGHT,PNG_WIDTH)
+		 
+			 run = True
+			 while run:
+				 t0 = time.time()
+				 last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
+				 t1 = time.time()
+				 delta = t1 - t0
+				 update_delay = DATA_DWELL_TIME - delta
+				 if update_delay < 0:
+					  update_delay = DATA_DWELL_TIME
+				 logging.debug('Next data update in %f seconds', update_delay)
+				 time.sleep(update_delay)
+    # If HTML_ONLY, the rest of this code will never execute.        
     process_event = multiprocessing.Event()
 
     images = [None] * IMAGE_COUNT

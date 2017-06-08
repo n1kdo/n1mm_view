@@ -3,10 +3,12 @@
 `n1mm_view` is a set of python scripts to display real-time contest QSO
  statistics for N4N ARRL Field Day.
 
-It listens to N1MM+ "Contact Info" UDP broadcasts (see the 
+It listens to N1MM+ or TR4W "Contact Info" UDP broadcasts (see the 
 [N1MM+ documentation](http://n1mm.hamdocs.com/tiki-index.php?page=UDP+Broadcasts))
 and collects the contact info into a database.  The contact info data 
 is used to create useful data screens that are continuously rotated.
+
+The contactchange and contactdelete UDP messages are also handles for changes made to the data in the logging program.
 
 It was built to run on a Raspberry Pi and to display the statistics 
 on a large television screen.  It should run anywhere its dependencies 
@@ -109,6 +111,10 @@ The dashboard should start up.  Eventually, graphs and tables will be displayed.
 * left and right arrows: change displayed page
 * scroll lock button: stop automatic page changing
 
+If HTML_DIR is set, the dashboard will create PNG files of all the images.
+
+If HTML_ONLY is selected, then no screen interface is displayed. (Use CTRL-\ to stop dashboard).
+
 ## License:
 
 This software is licensed under the terms of the "Simplified BSD license", see [LICENSE](LICENSE).
@@ -126,8 +132,8 @@ There's always more to do.  This project is still in late-prototype stage.
 * the `qso_log` table could be exported to ADIF.
 * A help option ("?" key?) for the dashboard to display what keys do what. 
 * A save option to save the graphics for later viewing
-* I have considered making the dashboard app into a web app so the app
-could run "headless" and users could view the graphics locally.
+* <del>I have considered making the dashboard app into a web app so the app
+could run "headless" and users could view the graphics locally.</del> Implemented with HTML_ONLY by NY4I
 
 GitHub pull requests will be happily looked at, and the odds are good that
 they will be merged.
