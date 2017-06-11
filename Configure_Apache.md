@@ -7,14 +7,15 @@ Create the directory if necessary and allow the www-data group to read the direc
    chgrp -R www-data /var/www
 
 Modify Apache config (one of two ways):
-Add virtual directory and Alias statment to apache2.conf
+Add virtual directory and Alias statment to apache2.conf or create n1mm_view.conf in /etc/apache2/conf-available
 ```ApacheConf
-Alias /n1mm_view "/home/toms/n1mm_view/html/"
-<Directory "/home/toms/n1mm_view/html/">
+Alias /n1mm_view "/var/ram/n1mm_view/html/"
+<Directory "/var/ram/n1mm_view/html/">
    Options Indexes FollowSymLinks
    AllowOverride None
    Require all granted
 </Directory>
+
 ```
 
 Disk Writing considerations
