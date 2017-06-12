@@ -4,7 +4,7 @@ Install Apache
 Set HTML directory in config file
 Create the directory if necessary and allow the www-data group to read the directory:
 
-   chgrp -R www-data /var/www
+   chgrp -R www-data /var/ram/n1mm_view
 
 Modify Apache config (one of two ways):
 Add virtual directory and Alias statment to apache2.conf or create n1mm_view.conf in /etc/apache2/conf-available
@@ -17,7 +17,12 @@ Alias /n1mm_view "/var/ram/n1mm_view/html/"
 </Directory>
 
 ```
-
+For then config-available, then enter:
+   sudo nano /etc/apache2/conf-available/n1mm_view.conf
+   Add above lines to n1mm_view.conf
+   sudo a2enconf n1mm_view
+   sudo service apache2 reload
+   
 Disk Writing considerations
 
 While the SD card in a Pi lasts a long time, it's write cycles are not limitless. One option would be to write the PNG files to a RAM disk. As the nature of these files are temporary, losing the files at boot time is not a major issue since when dashboard.py runs, it regenerates all the files.
