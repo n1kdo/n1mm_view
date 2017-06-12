@@ -7,6 +7,7 @@ This program displays QSO statistics collected by the collector.
 import logging
 import calendar
 import os
+import gc
 import multiprocessing
 import pygame
 import sqlite3
@@ -80,6 +81,11 @@ if 'HTML_DIR' in globals():
       logging.error("%s did not exist - creating but check Apache permissions" % HTML_DIR)
       os.makedirs(HTML_DIR)
 
+if 'POST_FILE_COMMAND' in globals():
+   postProcessing = True
+   logging.debug("POST_FILE_COMMAND will be executed after file creation. Command = ")
+   logging.debug(POST_FILE_COMMAND)
+   
 def makePNGTitle(title):
     return ''.join([HTML_DIR,'/',re.sub('[^\w\-_]', '_', title),'.png'])
     
@@ -93,7 +99,7 @@ def load_data(size, q, base_map, last_qso_timestamp):
     load data from the database tables
     """
     logging.debug('load data')
-
+    
     qso_operators = []
     qso_stations = []
     qso_band_modes = []
@@ -101,10 +107,11 @@ def load_data(size, q, base_map, last_qso_timestamp):
     qsos_per_hour = []
     qsos_by_section = {}
 
+   
     db = None
     data_updated = False
     last_qso_time = last_qso_timestamp
-
+    
     try:
         logging.debug('connecting to database')
         db = sqlite3.connect(DATABASE_FILENAME)
@@ -230,7 +237,10 @@ def load_data(size, q, base_map, last_qso_timestamp):
         return
     finally:
         if db is not None:
-            db.close()
+           logging.debug('Closing DB')
+           cursor.close()
+           db.close()
+           db = None
 
     if data_updated:
         try:
@@ -273,18 +283,25 @@ def load_data(size, q, base_map, last_qso_timestamp):
             enqueue_image(q, QSO_RATE_CHART_IMAGE_INDEX, image_data, image_size)
         except Exception as e:
             logging.exception(e)
+
+# There is a memory leak in the next code
     try:
         image_data, image_size = draw_map(size, qsos_by_section, base_map)
         enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
     except Exception as e:
         logging.exception(e)
 
+    if data_updated:
+       if postProcessing:
+          os.system(POST_FILE_COMMAND)
+           
     return last_qso_time
 
 
 def enqueue_image(q, id, image_data, size):
-    if image_data is not None:
-        q.put((IMAGE_MESSAGE, id, image_data, size))
+    if not HTML_ONLY:
+       if image_data is not None:
+          q.put((IMAGE_MESSAGE, id, image_data, size))
 
 
 def init_display():
@@ -368,7 +385,7 @@ def draw_map(size, qsos_by_section, my_map):
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
     water = '#191970'  # '#15155e'
     earth = '#552205'
-    ax = fig.add_subplot(111, axisbg=water)
+    ax = fig.add_subplot(111, facecolor=water)
     ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
                 color='white', size=48, weight='bold')
 
@@ -416,6 +433,7 @@ def draw_map(size, qsos_by_section, my_map):
     for text in legend.get_texts():
         plt.setp(text, color='w')
 
+
     # applying choropleth
     # logging.debug('applying choropleth')
     for section_name in CONTEST_SECTIONS.keys():
@@ -453,8 +471,9 @@ def draw_map(size, qsos_by_section, my_map):
        except:
        	 logging.exception("Error writing file %s" % makePNGTitle(title))
        
+    fig.clf()
     plt.close(fig)
-    
+    gc.collect()
     canvas_size = canvas.get_width_height()
     logging.debug('draw_map() done')
     return raw_data, canvas_size
@@ -656,7 +675,7 @@ def qso_rates_chart(size, qsos_per_hour):
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
 
-    ax = fig.add_subplot(111, axisbg='black')
+    ax = fig.add_subplot(111, facecolor='black')
     ax.set_title(title, color='white', size=48, weight='bold')
 
     st = calendar.timegm(EVENT_START_TIME.timetuple())
@@ -1009,7 +1028,7 @@ def change_image(screen, size, images, image_index, delta):
 
 def main():
     logging.info('dashboard startup')
-    
+    last_qso_timestamp = 0
     q = multiprocessing.Queue()
     if 'HTML_ONLY' in globals():
 		 if HTML_ONLY:
@@ -1025,15 +1044,19 @@ def main():
 		 
 			 run = True
 			 while run:
-				 t0 = time.time()
+				# t0 = time.time()
 				 last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
-				 t1 = time.time()
-				 delta = t1 - t0
-				 update_delay = DATA_DWELL_TIME - delta
-				 if update_delay < 0:
-					  update_delay = DATA_DWELL_TIME
-				 logging.debug('Next data update in %f seconds', update_delay)
-				 time.sleep(update_delay)
+				# t1 = time.time()
+				 
+				 while not q.empty():   # Empty queue even through we do not use it to prevent potential memory issues.
+				    q.get_nowait()
+				# delta = t1 - t0
+				 #update_delay = DATA_DWELL_TIME - delta
+				 #if update_delay < 0:
+					#  update_delay = DATA_DWELL_TIME
+				 logging.debug('Next data update in %f seconds', DATA_DWELL_TIME)
+				    
+				 time.sleep(DATA_DWELL_TIME)
     # If HTML_ONLY, the rest of this code will never execute.        
     process_event = multiprocessing.Event()
 
@@ -1123,6 +1146,7 @@ def main():
 
             crawl_messages.crawl_message()
             pygame.display.flip()
+            
             clock.tick(60)  # JEFF
 
         pygame.time.set_timer(pygame.USEREVENT, 0)
