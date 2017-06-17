@@ -35,7 +35,7 @@ LOG_LEVEL = logging.INFO
 """ Directory to which the PNG files are written - Will be created but ensure Apache has rights """
 #HTML_DIR = '/home/pi/n1mm_view/html'
 """ If True, then this is headless and only creates the PNG files """
-#HTML_ONLY = True
+HTML_ONLY = False
 """ Height and Width of image files written to disk """
 #PNG_HEIGHT = 1824
 #PNG_WIDTH = 984
