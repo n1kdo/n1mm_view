@@ -40,5 +40,5 @@ HTML_ONLY = False
 #PNG_HEIGHT = 1824
 #PNG_WIDTH = 984
 """ If set, this command is run after creating the files (used to rsync PNG files to remote web server)
-#POST_FILE_COMMAND = 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
+POST_FILE_COMMAND = 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
 
