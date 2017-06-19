@@ -85,7 +85,9 @@ if 'POST_FILE_COMMAND' in globals():
    postProcessing = True
    logging.debug("POST_FILE_COMMAND will be executed after file creation. Command = ")
    logging.debug(POST_FILE_COMMAND)
-   
+else:
+   postProcessing = False
+
 def makePNGTitle(title):
     return ''.join([HTML_DIR,'/',re.sub('[^\w\-_]', '_', title),'.png'])
     
