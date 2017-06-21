@@ -74,34 +74,37 @@ logging.Formatter.converter = time.gmtime
 
 logging.debug("Checking for HTML_DIR")
 if 'HTML_DIR' in globals():
-   SAVE_PNG = True
-   logging.debug("HTML_DIR set to %s - Will create PNG files" % HTML_DIR)
-   # Check if the dir given exists and create if necessary
-   if not os.path.exists(HTML_DIR):
-      logging.error("%s did not exist - creating but check Apache permissions" % HTML_DIR)
-      os.makedirs(HTML_DIR)
+    SAVE_PNG = True
+    logging.debug("HTML_DIR set to %s - Will create PNG files" % HTML_DIR)
+    # Check if the dir given exists and create if necessary
+    if not os.path.exists(HTML_DIR):
+        logging.error("%s did not exist - creating but check Apache permissions" % HTML_DIR)
+        os.makedirs(HTML_DIR)
 
-if 'POST_FILE_COMMAND' in globals():
-   postProcessing = True
-   logging.debug("POST_FILE_COMMAND will be executed after file creation. Command = ")
-   logging.debug(POST_FILE_COMMAND)
+if POST_FILE_COMMAND is not None and POST_FILE_COMMAND != "":
+    postProcessing = True
+    logging.debug("POST_FILE_COMMAND will be executed after file creation. Command = ")
+    logging.debug(POST_FILE_COMMAND)
 else:
-   postProcessing = False
+    postProcessing = False
+
 
 def makePNGTitle(title):
-    return ''.join([HTML_DIR,'/',re.sub('[^\w\-_]', '_', title),'.png'])
-    
+    return ''.join([HTML_DIR, '/', re.sub('[^\w\-_]', '_', title), '.png'])
+
+
 def save_image(image_data, image_size, filename):
     surface = pygame.image.frombuffer(image_data, image_size, IMAGE_FORMAT)
     pygame.image.save(surface, filename)
     pass
+
 
 def load_data(size, q, base_map, last_qso_timestamp):
     """
     load data from the database tables
     """
     logging.debug('load data')
-    
+
     qso_operators = []
     qso_stations = []
     qso_band_modes = []
@@ -109,25 +112,23 @@ def load_data(size, q, base_map, last_qso_timestamp):
     qsos_per_hour = []
     qsos_by_section = {}
 
-   
     db = None
     data_updated = False
     last_qso_time = last_qso_timestamp
-    
+
     try:
         logging.debug('connecting to database')
         db = sqlite3.connect(DATABASE_FILENAME)
         cursor = db.cursor()
         logging.debug('database connected')
 
-        
         if logging.getLogger().isEnabledFor(logging.DEBUG):
-           cursor.execute('SELECT timestamp, callsign, section FROM qso_log')
-           for row in cursor: 
-              logging.debug('QSO: %s\t%s\t%s' % (row[0], row[1], row[2])) 
-        
-        
-        # get timestamp from the last record in the database
+            cursor.execute('SELECT timestamp, callsign, section FROM qso_log')
+            for row in cursor:
+                logging.debug('QSO: %s\t%s\t%s' % (row[0], row[1], row[2]))
+
+
+                # get timestamp from the last record in the database
         cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
                        'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
                        'ORDER BY timestamp DESC LIMIT 1')
@@ -239,10 +240,10 @@ def load_data(size, q, base_map, last_qso_timestamp):
         return
     finally:
         if db is not None:
-           logging.debug('Closing DB')
-           cursor.close()
-           db.close()
-           db = None
+            logging.debug('Closing DB')
+            cursor.close()
+            db.close()
+            db = None
 
     if data_updated:
         try:
@@ -286,7 +287,7 @@ def load_data(size, q, base_map, last_qso_timestamp):
         except Exception as e:
             logging.exception(e)
 
-# There is a memory leak in the next code
+        # There is a memory leak in the next code
     try:
         image_data, image_size = draw_map(size, qsos_by_section, base_map)
         enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
@@ -294,16 +295,16 @@ def load_data(size, q, base_map, last_qso_timestamp):
         logging.exception(e)
 
     if data_updated:
-       if postProcessing:
-          os.system(POST_FILE_COMMAND)
-           
+        if postProcessing:
+            os.system(POST_FILE_COMMAND)
+
     return last_qso_time
 
 
 def enqueue_image(q, id, image_data, size):
     if not HTML_ONLY:
-       if image_data is not None:
-          q.put((IMAGE_MESSAGE, id, image_data, size))
+        if image_data is not None:
+            q.put((IMAGE_MESSAGE, id, image_data, size))
 
 
 def init_display():
@@ -340,7 +341,7 @@ def init_display():
         # set window origin for windowed usage
         os.putenv('SDL_VIDEO_WINDOW_POS', '0,0')
         # size = (size[0]-10, size[1] - 30)
-        screen = pygame.display.set_mode(size,pygame.NOFRAME)
+        screen = pygame.display.set_mode(size, pygame.NOFRAME)
 
     logging.debug('display size: %d x %d', size[0], size[1])
     # Clear the screen to start
@@ -387,7 +388,10 @@ def draw_map(size, qsos_by_section, my_map):
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
     water = '#191970'  # '#15155e'
     earth = '#552205'
-    ax = fig.add_subplot(111, facecolor=water)
+    if matplotlib.__version__[0] == '1':
+        ax = fig.add_subplot(111, axis_bgcolor=water)
+    else:
+        ax = fig.add_subplot(111, facecolor=water)
     ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
                 color='white', size=48, weight='bold')
 
@@ -407,7 +411,7 @@ def draw_map(size, qsos_by_section, my_map):
     logging.debug('setting shapes')
     ranges = [0, 1, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
     num_colors = len(ranges)
-    #color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
+    # color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
 
     legend_patches = []
@@ -435,7 +439,6 @@ def draw_map(size, qsos_by_section, my_map):
     for text in legend.get_texts():
         plt.setp(text, color='w')
 
-
     # applying choropleth
     # logging.debug('applying choropleth')
     for section_name in CONTEST_SECTIONS.keys():
@@ -451,7 +454,7 @@ def draw_map(size, qsos_by_section, my_map):
                 color_index += 1
                 if color_index == num_colors:
                     break
-                        
+
             section_color = 'k' if color_index == 0 else color_palette[color_index]
             # logging.debug('%s %d %d', section_name, qsos, color_index)
 
@@ -467,12 +470,12 @@ def draw_map(size, qsos_by_section, my_map):
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
     if SAVE_PNG:
-       logging.debug('Saving PNG file')
-       try:
-          fig.savefig(makePNGTitle('sections'))
-       except:
-       	 logging.exception("Error writing file %s" % makePNGTitle(title))
-       
+        logging.debug('Saving PNG file')
+        try:
+            fig.savefig(makePNGTitle('sections'))
+        except:
+            logging.exception("Error writing file %s" % makePNGTitle('sections'))
+
     fig.clf()
     plt.close(fig)
     gc.collect()
@@ -494,7 +497,7 @@ def make_pie(size, values, labels, title):
     ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'w'}, wedgeprops={'linewidth': 0.25},
            colors=('b', 'g', 'r', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300'))
     ax.set_title(title, color='white', size=48, weight='bold')
-    
+
     handles, labels = ax.get_legend_handles_labels()
     legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='lower left')  # best
     frame = legend.get_frame()
@@ -508,14 +511,13 @@ def make_pie(size, values, labels, title):
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
-    
-    
+
     if SAVE_PNG:
-       logging.debug('Saving PNG as %s' % makePNGTitle(title))
-       try:
-          fig.savefig(makePNGTitle(title),facecolor=fig.get_facecolor(), edgecolor='none')
-       except:
-          logging.exception("Error writing file %s" % makePNGTitle(title))
+        logging.debug('Saving PNG as %s' % makePNGTitle(title))
+        try:
+            fig.savefig(makePNGTitle(title), facecolor=fig.get_facecolor(), edgecolor='none')
+        except:
+            logging.exception("Error writing file %s" % makePNGTitle(title))
     plt.close(fig)
 
     canvas_size = canvas.get_width_height()
@@ -540,7 +542,7 @@ def qso_operators_graph(size, qso_operators):
     """
     # calculate QSO by Operator
     if qso_operators is None or len(qso_operators) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
     labels = []
     values = []
     for d in qso_operators:
@@ -554,7 +556,7 @@ def qso_operators_table(size, qso_operators):
     create the Top 5 QSOs by Operators table
     """
     if len(qso_operators) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     count = 0
     cells = [['Operator', 'QSOs']]
@@ -565,7 +567,7 @@ def qso_operators_table(size, qso_operators):
             break
 
     if count == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
     else:
         return draw_table(size, cells, "Top 5 Operators", bigger_font)
 
@@ -575,7 +577,7 @@ def qso_stations_graph(size, qso_stations):
     create the QSOs by Station pie chart
     """
     if qso_stations is None or len(qso_stations) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
     labels = []
     values = []
     # for d in qso_stations:
@@ -590,7 +592,7 @@ def qso_bands_graph(size, qso_band_modes):
     create the QSOs by Band pie chart
     """
     if qso_band_modes is None or len(qso_band_modes) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     labels = []
     values = []
@@ -601,7 +603,7 @@ def qso_bands_graph(size, qso_band_modes):
         total += band_data[i][1]
 
     if total == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     for bd in sorted(band_data[1:], key=lambda count: count[1], reverse=True):
         if bd[1] > 0:
@@ -615,7 +617,7 @@ def qso_modes_graph(size, qso_band_modes):
     create the QSOs by Mode pie chart
     """
     if qso_band_modes is None or len(qso_band_modes) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     labels = []
     values = []
@@ -627,7 +629,7 @@ def qso_modes_graph(size, qso_band_modes):
             total += qso_band_modes[i][mode_num]
 
     if total == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     for md in sorted(mode_data[1:], key=lambda count: count[1], reverse=True):
         if md[1] > 0:
@@ -648,7 +650,7 @@ def qso_rates_table(size, operator_qso_rates):
     create the QSO Rates by Operator table
     """
     if operator_qso_rates is None or len(operator_qso_rates) < 3:
-        return None, (0 ,0)
+        return None, (0, 0)
     else:
         return draw_table(size, operator_qso_rates, "QSO/Hour Rates")
 
@@ -662,7 +664,7 @@ def qso_rates_chart(size, qsos_per_hour):
     qso_counts = [[], [], [], [], [], [], [], [], [], []]
 
     if qsos_per_hour is None or len(qsos_per_hour) == 0:
-        return None, (0 ,0)
+        return None, (0, 0)
 
     data_valid = len(qsos_per_hour) != 0
 
@@ -677,7 +679,11 @@ def qso_rates_chart(size, qsos_per_hour):
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
 
-    ax = fig.add_subplot(111, facecolor='black')
+    if matplotlib.__version__[0] == '1':
+        ax = fig.add_subplot(111, axis_bgcolor='black')
+    else:
+        ax = fig.add_subplot(111, faceolor='black')
+
     ax.set_title(title, color='white', size=48, weight='bold')
 
     st = calendar.timegm(EVENT_START_TIME.timetuple())
@@ -718,15 +724,14 @@ def qso_rates_chart(size, qsos_per_hour):
     canvas.draw()
     renderer = canvas.get_renderer()
     raw_data = renderer.tostring_rgb()
-    
+
     if SAVE_PNG:
-       logging.debug('Saving PNG as %s' % makePNGTitle(title))
-       try:
-          fig.savefig(makePNGTitle(title),facecolor=fig.get_facecolor(), edgecolor='none')
-       except:
-       	 logging.exception("Error writing file %s" % makePNGTitle(title))
-       	 
-    
+        logging.debug('Saving PNG as %s' % makePNGTitle(title))
+        try:
+            fig.savefig(makePNGTitle(title), facecolor=fig.get_facecolor(), edgecolor='none')
+        except:
+            logging.exception("Error writing file %s" % makePNGTitle(title))
+
     plt.close(fig)
     canvas_size = canvas.get_width_height()
     return raw_data, canvas_size
@@ -830,15 +835,14 @@ def draw_table(size, cell_text, title, font=None):
     logging.debug('draw_table(...,%s) done', title)
     size = surf.get_size()
     data = pygame.image.tostring(surf, 'RGB')
-    
+
     if SAVE_PNG:
-       logging.debug('Saving table PNG as %s' % makePNGTitle(title))
-       try:
-          pygame.image.save(surf,makePNGTitle(title))
-       except:
-       	 logging.exception("Error writing file %s" % makePNGTitle(title))
-       
-    
+        logging.debug('Saving table PNG as %s' % makePNGTitle(title))
+        try:
+            pygame.image.save(surf, makePNGTitle(title))
+        except:
+            logging.exception("Error writing file %s" % makePNGTitle(title))
+
     return data, size
 
 
@@ -1033,32 +1037,32 @@ def main():
     last_qso_timestamp = 0
     q = multiprocessing.Queue()
     if 'HTML_ONLY' in globals():
-		 if HTML_ONLY:
-			 logging.info('HTML ONLY so no screen will appear')
-			 # Setup simple loop to call load_data and then wait for the interval
-			 base_map = create_map()
-			 last_qso_timestamp = 0
-			 if not ('PNG_HEIGHT' in globals() and 'PNG_WIDTH' in globals()):
-				 logging.info('PNG_HEIGHT and/or PNG_WIDTH not specified in config file - Using 800x600') 
-				 size = (800, 600)
-			 else:
-				 size = (PNG_HEIGHT,PNG_WIDTH)
-		 
-			 run = True
-			 while run:
-				# t0 = time.time()
-				 last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
-				# t1 = time.time()
-				 
-				 while not q.empty():   # Empty queue even through we do not use it to prevent potential memory issues.
-				    q.get_nowait()
-				# delta = t1 - t0
-				 #update_delay = DATA_DWELL_TIME - delta
-				 #if update_delay < 0:
-					#  update_delay = DATA_DWELL_TIME
-				 logging.debug('Next data update in %f seconds', DATA_DWELL_TIME)
-				    
-				 time.sleep(DATA_DWELL_TIME)
+        if HTML_ONLY:
+            logging.info('HTML ONLY so no screen will appear')
+            # Setup simple loop to call load_data and then wait for the interval
+            base_map = create_map()
+            last_qso_timestamp = 0
+            if not ('PNG_HEIGHT' in globals() and 'PNG_WIDTH' in globals()):
+                logging.info('PNG_HEIGHT and/or PNG_WIDTH not specified in config file - Using 800x600')
+                size = (800, 600)
+            else:
+                size = (PNG_HEIGHT, PNG_WIDTH)
+
+            run = True
+            while run:
+                # t0 = time.time()
+                last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
+                # t1 = time.time()
+
+                while not q.empty():  # Empty queue even through we do not use it to prevent potential memory issues.
+                    q.get_nowait()
+                # delta = t1 - t0
+                # update_delay = DATA_DWELL_TIME - delta
+                # if update_delay < 0:
+                #  update_delay = DATA_DWELL_TIME
+                logging.debug('Next data update in %f seconds', DATA_DWELL_TIME)
+
+                time.sleep(DATA_DWELL_TIME)
     # If HTML_ONLY, the rest of this code will never execute.        
     process_event = multiprocessing.Event()
 
@@ -1148,7 +1152,7 @@ def main():
 
             crawl_messages.crawl_message()
             pygame.display.flip()
-            
+
             clock.tick(60)  # JEFF
 
         pygame.time.set_timer(pygame.USEREVENT, 0)

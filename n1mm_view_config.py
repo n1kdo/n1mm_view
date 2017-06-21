@@ -12,9 +12,11 @@ EVENT_NAME = 'N4N Field Day'
 """ start time of the event/contest in YYYY-MM-DD hh:mm:ss format """
 # EVENT_START_TIME = datetime.datetime.strptime('2015-06-27 18:00:00', '%Y-%m-%d %H:%M:%S')
 EVENT_START_TIME = datetime.datetime.strptime('2016-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
+# EVENT_START_TIME = datetime.datetime.strptime('2017-06-24 18:00:00', '%Y-%m-%d %H:%M:%S')
 """ end time of the event/contest """
 # EVENT_END_TIME = datetime.datetime.strptime('2015-06-28 17:59:59', '%Y-%m-%d %H:%M:%S')
 EVENT_END_TIME = datetime.datetime.strptime('2016-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
+# EVENT_END_TIME = datetime.datetime.strptime('2017-06-25 17:59:59', '%Y-%m-%d %H:%M:%S')
 """ port number used by N1MM+ for UDP broadcasts """
 N1MM_BROADCAST_PORT = 12060
 """ broadcast IP address, used by log replayer """
@@ -33,12 +35,12 @@ DATA_DWELL_TIME = 60
 """ log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
 LOG_LEVEL = logging.INFO
 """ Directory to which the PNG files are written - Will be created but ensure Apache has rights """
-#HTML_DIR = '/home/pi/n1mm_view/html'
+HTML_DIR = '/home/pi/n1mm_view/html'
 """ If True, then this is headless and only creates the PNG files """
 HTML_ONLY = False
 """ Height and Width of image files written to disk """
-#PNG_HEIGHT = 1824
-#PNG_WIDTH = 984
+PNG_HEIGHT = 1824
+PNG_WIDTH = 984
 """ If set, this command is run after creating the files (used to rsync PNG files to remote web server) """
-POST_FILE_COMMAND = 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
+POST_FILE_COMMAND = None  # 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
 
