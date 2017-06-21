@@ -682,7 +682,7 @@ def qso_rates_chart(size, qsos_per_hour):
     if matplotlib.__version__[0] == '1':
         ax = fig.add_subplot(111, axis_bgcolor='black')
     else:
-        ax = fig.add_subplot(111, faceolor='black')
+        ax = fig.add_subplot(111, facecolor='black')
 
     ax.set_title(title, color='white', size=48, weight='bold')
 
