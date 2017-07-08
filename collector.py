@@ -5,7 +5,6 @@ This program collects N1MM+ "Contact Info" broadcasts and saves data from the br
 in database tables.
 """
 
-import calendar
 import logging
 import sqlite3
 import time
@@ -13,17 +12,17 @@ from hashlib import md5
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
 from xml.dom.minidom import parseString
 
-from n1mm_view_constants import *
-from n1mm_view_config import *
+import config
+import dataaccess
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=LOG_LEVEL)
+                    level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
 
@@ -76,44 +75,6 @@ class Stations:
         return sid
 
 
-def create_tables(db, cursor):
-    """
-    set up the database tables
-    """
-    cursor.execute('CREATE TABLE IF NOT EXISTS operator\n'
-                   '    (id INTEGER PRIMARY KEY NOT NULL, \n'
-                   '    name char(12) NOT NULL);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS operator_name ON operator(name);')
-
-    cursor.execute('CREATE TABLE IF NOT EXISTS station\n'
-                   '    (id INTEGER PRIMARY KEY NOT NULL, \n'
-                   '    name char(12) NOT NULL);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS station_name ON station(name);')
-
-    cursor.execute('CREATE TABLE IF NOT EXISTS qso_log\n'
-                   #'    (id INTEGER PRIMARY KEY NOT NULL,\n'
-                   '     (timestamp INTEGER NOT NULL,\n'
-                   '     mycall char(12) NOT NULL,\n'
-                   '     band_id INTEGER NOT NULL,\n'
-                   '     mode_id INTEGER NOT NULL,\n'
-                   '     operator_id INTEGER NOT NULL,\n'
-                   '     station_id INTEGER NOT NULL,\n'
-                   '     rx_freq INTEGER NOT NULL,\n'
-                   '     tx_freq INTEGER NOT NULL,\n'
-                   '     callsign char(12) NOT NULL,\n'
-                   '     rst_sent char(3),\n'
-                   '     rst_recv char(3),\n'
-                   '     exchange char(4),\n'
-                   '     section char(4),\n'
-                   '     comment TEXT);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_band_id ON qso_log(band_id);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_mode_id ON qso_log(mode_id);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_operator_id ON qso_log(operator_id);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_station_id ON qso_log(station_id);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_section ON qso_log(section);')
-    db.commit()
-
-
 def checksum(data):
     """
     generate a unique ID for each QSO.
@@ -143,63 +104,14 @@ def get_from_dom(dom, name):
         else:
             return fc.nodeValue
     except Exception, e:
-        logging.exception('could not parse %s from dom.' % name, e)
         return ''
-
-
-def record_contact(db, cursor, operators, stations,
-                   timestamp, mycall, band, mode, operator, station,
-                   rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                   exchange, section, comment):
-    """
-    record the results of a contact_message
-    """
-    band_id = Bands.get_band_number(band)
-    mode_id = Modes.get_mode_number(mode)
-    operator_id = operators.lookup_operator_id(operator)
-    station_id = stations.lookup_station_id(station)
-
-    logging.info('QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s' % (
-        time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
-        mycall, band,
-        mode, operator,
-        station, rx_freq, tx_freq, callsign, rst_sent,
-        rst_recv, exchange, section, comment))
-
-    cursor.execute(
-        'insert into qso_log \n'
-        '    (timestamp, mycall, band_id, mode_id, operator_id, station_id , rx_freq, tx_freq, \n'
-        '     callsign, rst_sent, rst_recv, exchange, section, comment)\n'
-        '    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        (calendar.timegm(timestamp), mycall, band_id, mode_id, operator_id, station_id, rx_freq, tx_freq,
-         callsign, rst_sent, rst_recv, exchange, section, comment))
-
-    db.commit()
-
-def delete_contact(db, cursor, timestamp, station, callsign):
-    """
-    Delete the results of a delete in N1MM
-    """
-    
-    """ station_id = stations.lookup_station_id(station)
-"""
-
-    logging.info('DELETEQSO: %s, timestamp = %s' % (callsign,calendar.timegm(timestamp)))
-    try:
-       cursor.execute(
-        "delete from qso_log where callsign = ? and timestamp = ?" ,(callsign, calendar.timegm(timestamp),))
-       db.commit()
-    except Exception as e:
-       logging.exception('Exception deleting contact from db.')
-       return ''
-   
 
 
 def process_message(db, cursor, operators, stations, data, seen):
     """
     Process a N1MM+ contactinfo message
     """
-    #logging.debug(data)
+    #  logging.debug(data)
     dom = parseString(data)
     if dom.getElementsByTagName("contactinfo").length == 1 or dom.getElementsByTagName("contactreplace").length == 1:
         checksum_value = checksum(data)
@@ -213,6 +125,8 @@ def process_message(db, cursor, operators, stations, data, seen):
         mode = get_from_dom(dom, "mode")
         operator = get_from_dom(dom, "operator")
         station_name = get_from_dom(dom, "StationName")
+        if station_name == '':
+            station_name = get_from_dom(dom, "NetBiosName")
         station = station_name
         rx_freq = int(get_from_dom(dom, "rxfreq")) * 10  # convert to Hz
         tx_freq = int(get_from_dom(dom, "txfreq")) * 10
@@ -226,22 +140,22 @@ def process_message(db, cursor, operators, stations, data, seen):
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
 
-        record_contact(db, cursor, operators, stations,
-                       timestamp, mycall, band, mode, operator, station,
-                       rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                       exchange, section, comment)
+        dataaccess.record_contact(db, cursor, operators, stations,
+                                  timestamp, mycall, band, mode, operator, station,
+                                  rx_freq, tx_freq, callsign, rst_sent, rst_recv,
+                                  exchange, section, comment)
     elif dom.getElementsByTagName("RadioInfo").length == 1:
-       logging.debug("Received radioInfo message")
+        logging.debug("Received radioInfo message")
     elif dom.getElementsByTagName("contactdelete").length == 1:
-       qso_timestamp = get_from_dom(dom, "timestamp")
-       callsign = get_from_dom(dom, "call")
-       station_name = get_from_dom(dom, "StationName")
-       station = station_name
-       # convert qso_timestamp to datetime object
-       timestamp = convert_timestamp(qso_timestamp)
-       delete_contact(db, cursor, timestamp, station, callsign)
+        qso_timestamp = get_from_dom(dom, "timestamp")
+        callsign = get_from_dom(dom, "call")
+        station_name = get_from_dom(dom, "StationName")
+        station = station_name
+        #  convert qso_timestamp to datetime object
+        timestamp = convert_timestamp(qso_timestamp)
+        dataaccess.delete_contact(db, cursor, timestamp, station, callsign)
     elif dom.getElementsByTagName("dynamicresults").length == 1:
-       logging.debug("Received Score message")   
+        logging.debug("Received Score message")
     else:
         logging.warn('unknown message received, ignoring.')
         logging.debug(data)
@@ -255,7 +169,7 @@ def listener(db, cursor):
     s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     try:
-        s.bind(('', N1MM_BROADCAST_PORT))
+        s.bind(('', config.N1MM_BROADCAST_PORT))
     except:
         logging.critical('Error connecting to the UDP stream.')
         return
@@ -278,9 +192,9 @@ def listener(db, cursor):
 
 def main():
     logging.info('Collector started...')
-    db = sqlite3.connect(DATABASE_FILENAME)
+    db = sqlite3.connect(config.DATABASE_FILENAME)
     cursor = db.cursor()
-    create_tables(db, cursor)
+    dataaccess.create_tables(db, cursor)
     listener(db, cursor)
     db.close()
 

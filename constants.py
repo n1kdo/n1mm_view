@@ -12,13 +12,14 @@ class Bands:
     this is all the bands that are supported.
     contest bands only for now.
     """
+
     BANDS_LIST = ['N/A', '1.8', '3.5', '7', '14', '21', '28', '50', '144', '420']
     BANDS_TITLE = ['No Band', '160M', '80M', '40M', '20M', '15M', '10M', '6M', '2M', '70cm']
     BANDS = {elem: index for index, elem in enumerate(BANDS_LIST)}
 
     @classmethod
-    def get_band_number(cls, bandName):
-        return Bands.BANDS.get(bandName)
+    def get_band_number(cls, band_name):
+        return Bands.BANDS.get(band_name)
 
     @classmethod
     def count(cls):

@@ -16,7 +16,7 @@ import sqlite3
 import time
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
 
-from n1mm_view_config import *
+from config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
