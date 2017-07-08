@@ -19,7 +19,7 @@ from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REU
 from config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -83,7 +83,6 @@ def convert_band(band):
         return '%d' % band
 
 
-# mainline
 def main():
     """
     re-play last years logs as UDP broadcasts to load test the collector process

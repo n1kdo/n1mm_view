@@ -44,21 +44,6 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
-logging.debug("Checking for IMAGE_DIR")
-if config.IMAGE_DIR is not None:
-    logging.debug("IMAGE_DIR set to %s - Will create PNG files" % config.IMAGE_DIR)
-    # Check if the dir given exists and create if necessary
-    if not os.path.exists(config.IMAGE_DIR):
-        logging.info("created IMAGE_DIR %s -- check permissions" % config.IMAGE_DIR)
-        os.makedirs(config.IMAGE_DIR)
-
-if config.POST_FILE_COMMAND is not None and config.POST_FILE_COMMAND != "":
-    postProcessing = True
-    logging.debug("POST_FILE_COMMAND will be executed after file creation. Command = ")
-    logging.debug(config.POST_FILE_COMMAND)
-else:
-    postProcessing = False
-
 
 def load_data(size, q, base_map, last_qso_timestamp):
     """
@@ -174,17 +159,12 @@ def load_data(size, q, base_map, last_qso_timestamp):
     except Exception as e:
         logging.exception(e)
 
-    if data_updated:
-        if postProcessing:
-            os.system(config.POST_FILE_COMMAND)
-
     return last_qso_time
 
 
 def enqueue_image(q, image_id, image_data, size):
-    if not config.HEADLESS:
-        if image_data is not None:
-            q.put((IMAGE_MESSAGE, image_id, image_data, size))
+    if image_data is not None:
+        q.put((IMAGE_MESSAGE, image_id, image_data, size))
 
 
 def delta_time_to_string(delta_time):
@@ -419,7 +399,7 @@ def main():
             crawl_messages.crawl_message()
             pygame.display.flip()
 
-            clock.tick(60)  # JEFF
+            clock.tick(60)
 
         pygame.time.set_timer(pygame.USEREVENT, 0)
     except Exception, e:
