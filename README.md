@@ -63,9 +63,15 @@ Currently, it supports the following displays:
 ## Components:
 
 * collector.py -- collect contact data from n1mm+ broadcasts
+* config.py -- configuration data.  edit this to change configuration.  
+  In theory, the only part you should need to edit to configure n1mm_view for your environment.
+* constants.py -- constant values shared by collector and dashboard.  Bands and Modes are defined here.
 * dashboard.py -- display collected statistics on screen
-* n1mm_view_constants.py -- constant values shared by collector and dashboard.  Bands and Modes are defined here.
-* n1mm_view_config.py -- configuration data.  in theory, the only part you should need to edit to configure n1mm_view for your environment.
+* dataaccess.py -- module contains data access code
+* graphics.py -- module contains code to create and manipulate the graphs, charts, and map.
+* headless.py -- application to create graphs, charts, and maps non-interactively, producing image files. 
+  Useful if you want to serve the images by http.
+* one_chart.py -- application that will display one chart only. Use this when debugging charts.
 * replayer.py -- test application, "replays" an old N1MM+ log to test collector and dashboard.
 * init/n1mm_view_collector.service -- systemd control file, starts collector at boot
 * init/n1mm_view_dashboard.service -- systemd control file, starts dashboard at boot
@@ -131,9 +137,6 @@ There's always more to do.  This project is still in late-prototype stage.
   * multipliers table
 * the `qso_log` table could be exported to ADIF.
 * A help option ("?" key?) for the dashboard to display what keys do what. 
-* A save option to save the graphics for later viewing
-* <del>I have considered making the dashboard app into a web app so the app
-could run "headless" and users could view the graphics locally.</del> Implemented with HTML_ONLY by NY4I
 
 GitHub pull requests will be happily looked at, and the odds are good that
 they will be merged.
