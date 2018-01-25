@@ -91,8 +91,8 @@ def load_data(size, q, base_map, last_qso_timestamp):
             # load QSO rates per Hour by Band
             qsos_per_hour, qsos_per_band = dataaccess.get_qsos_per_hour_per_band(cursor)
 
-            # load QSOs by Section
-            qsos_by_section = dataaccess.get_qsos_by_section(cursor)
+        # load QSOs by Section # This has to be done even if no new QSO to advance gray line and since the map is always drawn.
+        qsos_by_section = dataaccess.get_qsos_by_section(cursor)
 
         q.put((CRAWL_MESSAGE, 0, ''))
 
