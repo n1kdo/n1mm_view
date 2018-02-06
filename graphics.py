@@ -48,7 +48,8 @@ def init_display():
 
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
-    drivers = ['fbcon', 'directfb', 'svgalib', 'directx', 'windib']
+    # x11 needed for Raspbian Stretch.  Put fbcon before directfb to not hang composite output
+    drivers = ['x11', 'fbcon', 'directfb', 'ggi', 'svgalib', 'directx', 'windib']
     found = False
     for driver in drivers:
         # Make sure that SDL_VIDEODRIVER is set
