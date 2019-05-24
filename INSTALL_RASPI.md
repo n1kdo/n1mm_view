@@ -1,58 +1,64 @@
 # How to install n1mm_view on Raspberry Pi
 
 1. install Raspian
-1. log in 
+1. log in
 1. open terminal window
 1. `$ sudo apt-get update` -- this takes about 2 minutes
-1. `$ sudo apt-get upgrade` -- this takes a while minutes.  Get a beer.
-1. `$ sudo apt-get install python-dev` -- this takes a short minute. -- python27-dev was not a valid name
-1. `$ sudo apt-get install python-pygame`
-1. `$ sudo pip install numpy` -- beer time again.  :beer:  There will likely be some compile warnings.
-Warnings are OK.  Errors are not.  This takes a while.
-1. `$ sudo pip install matplotlib` -- n1mm_view needs 1.5.0 or 1.5.1, so this has to be installed the hard way.
-Get another beer.  :beer:
-1. `$ sudo bash`
-1. `$ wget http://iweb.dl.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz `
-1. `$ tar xf basemap-1.0.7.tar.gz`
-1. `$ cd basemap-1.0.7/geos-3.3.3`
-1. `$ export GEOS_DIR=/usr/local`
-1. `$ ./configure --prefix=$GEOS_DIR`
-1. `$ make ; make install` -- beer time again.  :beer:
-1. `$ cd ..`
-1. `$ python setup.py install`  -- again, you might see more warnings.  relax and have another beer.  :beer:
-1. `$ exit` -- this logs you out of the root account.
+1. `$ sudo apt-get upgrade` -- this takes a while.
+1. `$ sudo apt-get install python-dev python-pygame`
+Some Raspbian versions will already have these installed.
+1. `$ sudo pip install numpy` --   There will likely be some compile warnings.
+Warnings are OK.  Errors are not.  This takes a while.  Newer Raspbian versions will already hav this library.
+1. `$ sudo apt-get install -y python-matplotlib` -- n1mm_view needs 1.5.0 or 1.5.1
+1. `$ sudo apt-get install -y python-mpltoolkits.basemap` This will take quite a while.
+if the package is not available, install it manually:
+    Get another beer.  :beer:
+    1. `$ sudo bash`
+    1. `$ wget http://iweb.dl.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz `
+    1. `$ tar xf basemap-1.0.7.tar.gz`
+    1. `$ cd basemap-1.0.7/geos-3.3.3`
+    1. `$ export GEOS_DIR=/usr/local`
+    1. `$ ./configure --prefix=$GEOS_DIR`
+    1. `$ make ; make install` -- beer time again.  :beer:  
+    1. `$ cd ..`
+    1. `$ python setup.py install`  -- again, you might see more warnings.  relax and have another beer.  :beer:
+    1. `$ exit` -- this logs you out of the root account.
+
+Copy the project files into place.
 1. `$ git clone https://github.com/n1kdo/n1mm_view.git`
 1. `$ cd n1mm_view`
-1. `$ ls`
+1. `$ ls` You should see that the n1mm_view files have been installed.
 
-After you enter the `ls` command, you should see that the n1mm_view files have been installed.
+Complete the "Configure Apache" instructions.
 
 Now you can run the programs.
 
-There are two programs of interest.  You will want to open a terminal window for each.
+There are two programs of interest.  You will want to open a separate terminal window for each.
 
-First, start the collector: `$ ./collector.py` -- the collector will create the database 
+First, start the collector: `$ ./collector.py` -- the collector will create the database
 `n1mm_view.db` if it is not present.
 
-After the collector has started, use your other terminal window and start the dashboard: 
-`./dashboard.py`.  As the QSOs are collected by the collector, the dashboard will show 
+After the collector has started, use your other terminal window and start the dashboard:
+`./dashboard.py`.  As the QSOs are collected by the collector, the dashboard will show
 statistics.
 
 The collector can be stopped with control-c.  
 
-The dashboard responds to two keystrokes: 
+The dashboard responds to a few hotkeys:
 * 'n' -- show the next display page
-* 'q' -- exit the dashboard
+* 'q' -- exit the dashboard (this does not work if you start it via autostart/systemd)
+* 'leftarrow' -- cycle to next graph
+* 'rightarrow' -- cycle to previous graph
 
-You can flush the collected statistics (perhaps immediately before the 
+You can flush the collected statistics (perhaps immediately before the
 contest starts) by shutting down the collector and dashboard and then
-deleting the database: 
+deleting the database:
 
 `$ rm n1mm_view.db` -- then restart the collector immediately.
 
 ## How to install the autostart scripts
 
-You can install systemd configuration files on your system to make the 
+You can install systemd configuration files on your system to make the
 collector and dashboard processes start automatically at boot time.
 
 1. get root (sudo bash, or whatever way you like)
@@ -67,5 +73,6 @@ It works for me.
 ## Challenges, "Gotchas", and Caveat Emptor
 
 My experience is that this all works better if you have static IP addresses
-for every computer running N1MM+ and the Raspberry Pi.  Configuration of 
+for every computer running N1MM+ and the Raspberry Pi.  Configuration of
 static IP is beyond the scope of this document.
+
