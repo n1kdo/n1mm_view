@@ -11,7 +11,7 @@ Install Apache
    sudo nano /etc/fstab
    add a line that reads (these are TAB characters, not spaces):
 
-   tmpfs  /var/ram tmpfs nodev,nosuid,size=2M 0 0
+   tmpfs  /var/ram tmpfs nodev,nosuid,uid=33,gid=33,size=2M 0 0
 
    Save and exit the file
    sudo mount -a
