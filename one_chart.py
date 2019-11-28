@@ -2,7 +2,6 @@
 
 """
 This script allows you to view ONE of the graphs relatively quickly, mostly for debugging the graph generators.
-The image that does not generate quickly is the map North America, Basemap is a little slow to start up.
 """
 
 import logging
@@ -15,6 +14,10 @@ import config
 import dataaccess
 import graphics
 
+__author__ = 'Jeffrey B. Otterson, N1KDO'
+__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
+__license__ = 'Simplified BSD'
+
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
@@ -24,7 +27,7 @@ def main():
     logging.info('dashboard startup')
     try:
         screen, size = graphics.init_display()
-    except Exception, e:
+    except Exception as e:
         logging.exception('Could not initialize display.', exc_info=e)
         sys.exit(1)
 
@@ -81,16 +84,15 @@ def main():
             db = None
 
     try:
-        #        image_data, image_size = n1mm_view_graphs.qso_summary_table(size, qso_band_modes)
-        #        image_data, image_size = n1mm_view_graphs.qso_rates_table(size, operator_qso_rates)
-        #        image_data, image_size = n1mm_view_graphs.qso_operators_graph(size, qso_operators)
-        #        image_data, image_size = n1mm_view_graphs.qso_operators_table(size, qso_operators)
-        #        image_data, image_size = n1mm_view_graphs.qso_stations_graph(size, qso_stations)
-        #        image_data, image_size = n1mm_view_graphs.qso_bands_graph(size, qso_band_modes)
-        #        image_data, image_size = n1mm_view_graphs.qso_modes_graph(size, qso_band_modes)
-        image_data, image_size = graphics.qso_rates_chart(size, qsos_per_hour)
-        #base_map = n1mm_view_graphs.create_map()
-        #image_data, image_size = n1mm_view_graphs.draw_map(size, qsos_by_section, base_map)
+        # image_data, image_size = graphics.qso_summary_table(size, qso_band_modes)
+        # image_data, image_size = graphics.qso_rates_table(size, operator_qso_rates)
+        # image_data, image_size = graphics.qso_operators_graph(size, qso_operators)
+        # image_data, image_size = graphics.qso_operators_table(size, qso_operators)
+        # image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
+        # image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
+        # image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
+        # image_data, image_size = graphics.qso_rates_chart(size, qsos_per_hour)
+        image_data, image_size = graphics.draw_map(size, qsos_by_section)
         #  gc.collect()
 
         image = pygame.image.frombuffer(image_data, image_size, 'RGB')
@@ -111,7 +113,7 @@ def main():
                     else:
                         logging.debug('event key=%d', event.key)
 
-    except Exception, e:
+    except Exception as e:
         logging.exception("Exception in main:", exc_info=e)
 
     pygame.display.quit()

@@ -16,7 +16,7 @@ import config
 import dataaccess
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -103,7 +103,7 @@ def get_from_dom(dom, name):
             return ''
         else:
             return fc.nodeValue
-    except Exception, e:
+    except Exception as e:
         return ''
 
 
@@ -157,7 +157,7 @@ def process_message(db, cursor, operators, stations, data, seen):
     elif dom.getElementsByTagName("dynamicresults").length == 1:
         logging.debug("Received Score message")
     else:
-        logging.warn('unknown message received, ignoring.')
+        logging.warning('unknown message received, ignoring.')
         logging.debug(data)
 
 

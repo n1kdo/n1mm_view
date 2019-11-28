@@ -3,22 +3,23 @@
 #
 import calendar
 import os
-import pygame
+
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import cartopy.io.shapereader as shapereader
 import matplotlib
-#  This makes the code analyzer angry, as python standards say to put imports ahead of all executable code.
-#  But... it MUST be RIGHT HERE so matplotlib does not try to use the wrong backend.
-
-matplotlib.use('Agg')
-
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
+import numpy as np
+import pygame
 from matplotlib.dates import HourLocator, DateFormatter
 
-from mpl_toolkits.basemap import Basemap
-import numpy as np
-
-from constants import *
 from config import *
+from constants import *
+
+__author__ = 'Jeffrey B. Otterson, N1KDO'
+__copyright__ = 'Copyright 2016, 2019 Jeffrey B. Otterson'
+__license__ = 'Simplified BSD'
 
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
@@ -471,108 +472,38 @@ def draw_table(size, cell_text, title, font=None):
     return data, size
 
 
-def create_map():
+def draw_map(size, qsos_by_section):
     """
-    create the base map for the choropleth.
+    make the choropleth with Cartopy & section shapefiles
     """
-    logging.debug('create_map() -- Please wait while I create the world.')
-    degrees_width = 118.0
-    degrees_height = 55.0
-    center_lat = 44.5
-    center_lon = -110.0
-    my_map = Basemap(  # ax=ax,
-        projection='merc',  # default is cyl
-        ellps='WGS84',
-        lat_0=center_lat, lon_0=center_lon,
-        llcrnrlat=center_lat - degrees_height / 2.0,
-        llcrnrlon=center_lon - degrees_width / 2.0,
-        urcrnrlat=center_lat + degrees_height / 2.0,
-        urcrnrlon=center_lon + degrees_width / 2.0,
-        resolution='i',  # 'c', 'l', 'i', 'h', 'f'
-    )
-    logging.debug('created map')
-    logging.debug('loading shapes...')
-    for section_name in CONTEST_SECTIONS.keys():
-        # logging.debug('trying to load shape for %s', section_name)
-        try:
-            my_map.readshapefile('shapes/%s' % section_name, section_name, drawbounds=False)
-        except IOError, err:
-            logging.error('Could not load shape for %s' % section_name)
-
-    logging.debug('loaded section shapes')
-    return my_map
-
-
-def draw_map(size, qsos_by_section, my_map=None):
     logging.debug('draw_section map()')
-    if my_map is None:
-        global _map
-        if _map is None:
-            _map = create_map()
-        my_map = _map
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
-    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
-    water = '#191970'  # '#15155e'
-    earth = '#552205'
-    if matplotlib.__version__[0] == '1':
-        ax = fig.add_subplot(111, axis_bgcolor=water)
-    else:
-        ax = fig.add_subplot(111, facecolor=water)
-    ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
-                color='white', size=48, weight='bold')
+    fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, facecolor='black')
 
-    logging.debug('setting basemap axis')
-    my_map.ax = ax
-    # my_map.drawcoastlines(color='white', linewidth=0.5)
-    # my_map.drawcountries(color='white', linewidth=0.5)
-    # my_map.drawstates(color='white')
-    # my_map.drawmapboundary(fill_color='#000033')
-    my_map.fillcontinents(color=earth, lake_color=water)
+    projection = ccrs.PlateCarree()
+    ax = fig.add_axes([0, 0, 1, 1], projection=projection)
+    ax.set_extent([-168, -52, 10, 60], ccrs.Geodetic())
+    ax.add_feature(cfeature.OCEAN, color='#000080')
+    ax.add_feature(cfeature.LAKES, color='#000080')
+    ax.add_feature(cfeature.LAND, color='#113311')
 
-    # mark our QTH
-    x, y = my_map(QTH_LONGITUDE, QTH_LATITUDE)
-    my_map.plot(x, y, '.', color='r')
-    my_map.nightshade(datetime.datetime.utcnow(), alpha=0.25, zorder=4)
+    ax.coastlines('50m')
 
-    logging.debug('setting shapes')
     ranges = [0, 1, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
     num_colors = len(ranges)
-    # color_palette = ['#223333', '#1c8e66', '#389c66', '#55aa66', '#71b866', '#8ec766', '#aad566', '#c7e366', '#e3f166']
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
 
-    legend_patches = []
-    last_bin = 0
-    for i in range(0, num_colors):
-        bin_max = ranges[i]
-        color = color_palette[i]
-        if bin_max == 0:
-            label = '0'
-            color = 'k'
-        elif bin_max == -1:
-            label = '%d +' % (last_bin + 1)
-        else:
-            label = '%d - %d' % (last_bin + 1, bin_max)
-            last_bin = bin_max
-        legend_patches.append(matplotlib.patches.Patch(color=color, label=label))
-    label = '> %d' % last_bin
-    color = color_palette[num_colors]
-    legend_patches.append(matplotlib.patches.Patch(color=color, label=label))
-    legend = ax.legend(handles=legend_patches)
-    frame = legend.get_frame()
-    frame.set_color((0, 0, 0, 0.75))
-    frame.set_edgecolor('w')
-    legend.get_title().set_color('w')
-    for text in legend.get_texts():
-        plt.setp(text, color='w')
-
-    # applying choropleth
-    # logging.debug('applying choropleth')
     for section_name in CONTEST_SECTIONS.keys():
         qsos = qsos_by_section.get(section_name)
         if qsos is None:
             qsos = 0
-        shape = my_map.__dict__.get(section_name)  # probably bad style
+            #logging.debug('section {} has no qsos!'.format(section_name))
+
+        shape_file_name = 'shapes/{}.shp'.format(section_name)
+        reader = shapereader.Reader(shape_file_name)
+        shapes = reader.records()
+        shape = next(shapes)
         if shape is not None:
             color_index = 0
             for range_max in ranges:
@@ -582,15 +513,9 @@ def draw_map(size, qsos_by_section, my_map=None):
                 if color_index == num_colors:
                     break
 
+            shape.attributes['name'] = section_name
             section_color = 'k' if color_index == 0 else color_palette[color_index]
-            # logging.debug('%s %d %d', section_name, qsos, color_index)
-
-            patches = []
-            for ss in shape:
-                patches.append(matplotlib.patches.Polygon(np.array(ss), True))
-            patch_collection = matplotlib.collections.PatchCollection(patches, edgecolor='w', linewidths=0.1, zorder=2)
-            patch_collection.set_facecolor(section_color)
-            ax.add_collection(patch_collection)
+            ax.add_geometries([shape.geometry], projection, linewidth=0.7, edgecolor="w", facecolor=section_color)
 
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
@@ -602,4 +527,3 @@ def draw_map(size, qsos_by_section, my_map=None):
     canvas_size = canvas.get_width_height()
     logging.debug('draw_map() done')
     return raw_data, canvas_size
-

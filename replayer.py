@@ -10,7 +10,6 @@ Make sure your download the version for the same architecture as your python
 installation (32- vs. 64-bit.)
 """
 
-import logging
 import random
 import sqlite3
 import time
@@ -19,7 +18,7 @@ from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REU
 from config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -117,7 +116,7 @@ def main():
                   row[16], row[17], row[18], row[19], row[20])
         payload = TEMPLATE % values
 
-        s.sendto(payload, (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
+        s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
         qso_number += 1
         logging.info("sent qso # %d timestamp %s" % (qso_number, ts))
         # there are ~4000 qsos in the database.

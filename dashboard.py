@@ -19,7 +19,7 @@ import dataaccess
 import graphics
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 LOGO_IMAGE_INDEX = 0
@@ -45,7 +45,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
 logging.Formatter.converter = time.gmtime
 
 
-def load_data(size, q, base_map, last_qso_timestamp):
+def load_data(size, q, last_qso_timestamp):
     """
     load data from the database tables
     """
@@ -151,11 +151,9 @@ def load_data(size, q, base_map, last_qso_timestamp):
             logging.exception(e)
 
     try:
-        # There is a memory leak in the next code -- is there?
-        image_data, image_size = graphics.draw_map(size, qsos_by_section, base_map)
+        image_data, image_size = graphics.draw_map(size, qsos_by_section)
         enqueue_image(q, SECTIONS_WORKED_MAP_INDEX, image_data, image_size)
         gc.collect()
-
     except Exception as e:
         logging.exception(e)
 
@@ -272,14 +270,13 @@ def update_charts(q, event, size):
     except AttributeError:
         logging.warn("can't be nice to windows")
     q.put((CRAWL_MESSAGE, 4, 'Chart engine starting...'))
-    base_map = graphics.create_map()
     last_qso_timestamp = 0
     q.put((CRAWL_MESSAGE, 4, ''))
 
     try:
         while not event.is_set():
             t0 = time.time()
-            last_qso_timestamp = load_data(size, q, base_map, last_qso_timestamp)
+            last_qso_timestamp = load_data(size, q, last_qso_timestamp)
             t1 = time.time()
             delta = t1 - t0
             update_delay = config.DATA_DWELL_TIME - delta
@@ -287,7 +284,7 @@ def update_charts(q, event, size):
                 update_delay = config.DATA_DWELL_TIME
             logging.debug('Next data update in %f seconds', update_delay)
             event.wait(update_delay)
-    except Exception, e:
+    except Exception as e:
         logging.exception('Exception in update_charts', exc_info=e)
         q.put((CRAWL_MESSAGE, 4, 'Chart engine failed.', graphics.YELLOW, graphics.RED))
 
@@ -315,7 +312,7 @@ def main():
     images = [None] * IMAGE_COUNT
     try:
         screen, size = graphics.init_display()
-    except Exception, e:
+    except Exception as e:
         logging.exception('Could not initialize display.', exc_info=e)
         sys.exit(1)
 
@@ -402,7 +399,7 @@ def main():
             clock.tick(60)
 
         pygame.time.set_timer(pygame.USEREVENT, 0)
-    except Exception, e:
+    except Exception as e:
         logging.exception("Exception in main:", exc_info=e)
 
     pygame.display.quit()

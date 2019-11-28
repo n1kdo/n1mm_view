@@ -1,4 +1,5 @@
 # n1mm_view database access code
+
 import calendar
 from datetime import datetime
 import logging
@@ -6,6 +7,10 @@ import time
 
 import config
 import constants
+
+__author__ = 'Jeffrey B. Otterson, N1KDO'
+__copyright__ = 'Copyright 2016, 2019 Jeffrey B. Otterson'
+__license__ = 'Simplified BSD'
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
@@ -189,6 +194,7 @@ def get_qsos_per_hour_per_band(cursor):
         t = rec[0].strftime('%H:%M:%S')
 
     return qsos_per_hour, qsos_by_band
+
 
 def get_qsos_by_section(cursor):
     logging.debug('Load QSOs by Section')
