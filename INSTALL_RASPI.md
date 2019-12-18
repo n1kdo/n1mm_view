@@ -1,28 +1,11 @@
 # How to install n1mm_view on Raspberry Pi
 
-1. install Raspian
+1. install Raspian "buster" "lite" onto your Raspberry Pi -- we don't need the full version. https://www.raspberrypi.org/downloads/raspbian/
 1. log in
 1. open terminal window
 1. `$ sudo apt-get update` -- this takes about 2 minutes
 1. `$ sudo apt-get upgrade` -- this takes a while.
-1. `$ sudo apt-get install python-dev python-pygame`
-Some Raspbian versions will already have these installed.
-1. `$ sudo pip install numpy` --   There will likely be some compile warnings.
-Warnings are OK.  Errors are not.  This takes a while.  Newer Raspbian versions will already hav this library.
-1. `$ sudo apt-get install -y python-matplotlib` -- n1mm_view needs 1.5.0 or 1.5.1
-1. `$ sudo apt-get install -y python-mpltoolkits.basemap` This will take quite a while.
-if the package is not available, install it manually:
-    Get another beer.  :beer:
-    1. `$ sudo bash`
-    1. `$ wget http://iweb.dl.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz `
-    1. `$ tar xf basemap-1.0.7.tar.gz`
-    1. `$ cd basemap-1.0.7/geos-3.3.3`
-    1. `$ export GEOS_DIR=/usr/local`
-    1. `$ ./configure --prefix=$GEOS_DIR`
-    1. `$ make ; make install` -- beer time again.  :beer:  
-    1. `$ cd ..`
-    1. `$ python setup.py install`  -- again, you might see more warnings.  relax and have another beer.  :beer:
-    1. `$ exit` -- this logs you out of the root account.
+1. `$ sudo apt-get install git python3-dev python3-pygame python3-matplotlib python3-cartopy python3-pykdtree python3-scipy`
 
 Copy the project files into place.
 1. `$ git clone https://github.com/n1kdo/n1mm_view.git`
