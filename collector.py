@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 n1mm_view collector
 This program collects N1MM+ "Contact Info" broadcasts and saves data from the broadcasts

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 n1mm_view log replayer
 this program replays old N1MM+ log files as udp broadcasts for testing n1mm_view.

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
 This script allows you to view ONE of the graphs relatively quickly, mostly for debugging the graph generators.

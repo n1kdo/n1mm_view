@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 n1mm_view dashboard
 This program displays QSO statistics collected by the collector.
