@@ -1,6 +1,6 @@
 """
 this file contains configuration values for n1mm_view.
-If I did this right, this should be the only thing a user needs to customize.
+This should be the only thing you would need to customize.
 """
 import datetime
 import logging
@@ -8,42 +8,37 @@ import logging
 """ name of database file """
 DATABASE_FILENAME = 'n1mm_view.db'
 """ Name of the event/contest """
-EVENT_NAME = 'N4N Field Day'
+EVENT_NAME = 'MyClubCall Field Day'
 """ start time of the event/contest in YYYY-MM-DD hh:mm:ss format """
-# EVENT_START_TIME = datetime.datetime.strptime('2015-06-27 18:00:00', '%Y-%m-%d %H:%M:%S')
-# EVENT_START_TIME = datetime.datetime.strptime('2016-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
-EVENT_START_TIME = datetime.datetime.strptime('2017-06-24 18:00:00', '%Y-%m-%d %H:%M:%S')
+# EVENT_START_TIME = datetime.datetime.strptime('2019-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
+EVENT_START_TIME = datetime.datetime.strptime('2020-06-21 18:00:00', '%Y-%m-%d %H:%M:%S')
 """ end time of the event/contest """
-# EVENT_END_TIME = datetime.datetime.strptime('2015-06-28 17:59:59', '%Y-%m-%d %H:%M:%S')
-# EVENT_END_TIME = datetime.datetime.strptime('2016-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
-EVENT_END_TIME = datetime.datetime.strptime('2017-06-25 17:59:59', '%Y-%m-%d %H:%M:%S')
-""" port number used by N1MM+ for UDP broadcasts """
+# EVENT_END_TIME = datetime.datetime.strptime('2019-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
+EVENT_END_TIME = datetime.datetime.strptime('2020-06-23 17:59:59', '%Y-%m-%d %H:%M:%S')
+""" port number used by N1MM+ for UDP broadcasts This matches the port you set in N1MM Configurator UDP logging """
 N1MM_BROADCAST_PORT = 12060
-""" broadcast IP address, used by log replayer """
+""" broadcast IP address, used by log re-player. This could be the IP of the N1MM master, or just the last address in the network segment """
 N1MM_BROADCAST_ADDRESS = '192.168.1.255'
 """ n1mm+ log file name used by replayer """
-# N1MM_LOG_FILE_NAME = '2015N4N.s3db'
-# N1MM_LOG_FILE_NAME = 'n4n-2016-final.s3db'
-# N1MM_LOG_FILE_NAME = 'w1cum.s3db'
-N1MM_LOG_FILE_NAME = 'N4N-2017.s3db'
+# N1MM_LOG_FILE_NAME = 'MyClubCall-2019.s3db'
+N1MM_LOG_FILE_NAME = 'MyClubCall-2020.s3db'
+""" QTH here is the location of your event. We mark this location with a red dot when we generate the map views."""
 """ QTH Latitude """
 QTH_LATITUDE = 34.0109629
 """ QTH Longitude """
 QTH_LONGITUDE = -84.4616047
-""" number of seconds before automatic display change """
+""" number of seconds before automatic display change to the next screen """
 DISPLAY_DWELL_TIME = 6
-""" number of seconds before automatic graph update from database """
+""" number of seconds before automatic info recalculation from database. Too low makes the Pi work harder. Too high makes a lag in viewing your results. """
 DATA_DWELL_TIME = 60
 """ log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
-LOG_LEVEL = logging.DEBUG
-#
+LOG_LEVEL = logging.WARN
 #
 """images directory, or None if not writing image files"""
 IMAGE_DIR = '.'
 IMAGE_WIDTH = 1920
 IMAGE_HEIGHT = 1080
-""" set HEADLESS True to not open graphics window. """
+""" set HEADLESS True to not open graphics window. This is for using only the Apache option."""
 HEADLESS = False
-""" If set, this command is run after creating the files (used to rsync PNG files to remote web server) """
+""" If set, this command is run after creating the files (used to rsync PNG files to a remote web server) """
 POST_FILE_COMMAND = None  # 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
-

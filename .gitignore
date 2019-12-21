@@ -1,2 +1,4 @@
 *.pyc
 .idea/
+*.s3db*
+n1mm_view.db
