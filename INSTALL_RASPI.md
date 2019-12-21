@@ -3,19 +3,20 @@
 1. install Raspian "buster" "lite" onto your Raspberry Pi -- we don't need the full version. https://www.raspberrypi.org/downloads/raspbian/
 1. log in
 1. open terminal window
-1. `$ sudo apt-get update` -- this takes about 2 minutes
-1. `$ sudo apt-get upgrade` -- this takes a while.
-1. `$ sudo apt-get install git python3-dev python3-pygame python3-matplotlib python3-cartopy python3-pykdtree python3-scipy`
+1. Run the following four commands
+* `git clone https://github.com/n1kdo/n1mm_view.git`
+this downloads the latest copy of n1mm_view to your pi
+* `cd n1mm_view`
+This moves into the project directory
+* `pip install numpy`
+make sure library for higher math computations is available
+* `sudo ./rpi_install.sh` 
+Installs the remaining libraries and prerequisites. also gets all current updates for Raspbian.) This also handles everything in the Configure_Apache document. If you will not use the webserver option, you can simply stop the apache daemon (`sudo apachectl stop`)
+This last command will run for quite some time. We gave it a lot of things to do.
 
-Copy the project files into place.
-1. `$ git clone https://github.com/n1kdo/n1mm_view.git`
-1. `$ cd n1mm_view`
-1. `$ ls` You should see that the n1mm_view files have been installed.
+Update config.py with your operating settings. "MyClubCall" is a placeholder. For pre-testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
 
-Complete the "Configure Apache" instructions.
-
-Now you can run the programs.
-
+# Running N1MM_view
 There are two programs of interest.  You will want to open a separate terminal window for each.
 
 First, start the collector: `$ ./collector.py` -- the collector will create the database
