@@ -98,8 +98,12 @@ def load_data(size, q, last_qso_timestamp):
 
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
-        logging.exception(error)
-        q.put((CRAWL_MESSAGE, 0, 'database read error', graphics.YELLOW, graphics.RED))
+        if error.args is not None and error.args[0].startswith('no such table'):
+            q.put((CRAWL_MESSAGE, 0, 'database not ready', graphics.YELLOW, graphics.RED))
+        else:
+            logging.error(error.args[0])
+            logging.exception(error)
+            q.put((CRAWL_MESSAGE, 0, 'database read error', graphics.YELLOW, graphics.RED))
         return
     finally:
         if db is not None:
@@ -276,7 +280,7 @@ def update_charts(q, event, size):
     try:
         while not event.is_set():
             t0 = time.time()
-            last_qso_timestamp = load_data(size, q, last_qso_timestamp)
+            last_qso_timestamp = load_data(size, q, last_qso_timestamp) or 0
             t1 = time.time()
             delta = t1 - t0
             update_delay = config.DATA_DWELL_TIME - delta

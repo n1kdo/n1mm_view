@@ -1,6 +1,31 @@
 # How to install n1mm_view on Windows
 
-Windows Installation Instructions courtesy of Sheldon, VE1GPY/VE1SL
+#### _Preliminary_ Python 3 version...
+
+1. Fetch _miniconda_ from https://docs.conda.io/en/latest/miniconda.html and install it.  
+Select a Python 3 version.  
+You will need to reboot after, so that conda gets picked up by the system path.
+
+1. open a "conda window" and run these commands
+    ```
+    conda create -n n1mm_view python=3.5
+    activate n1mm_view
+    conda install --channel https://conda.anaconda.org CogSci pygame
+    conda install matplotlib
+    conda install cartopy
+    ```
+
+1. Either clone n1mm_view with git or fetch the zip of _n1mm_view_ from https://github.com/n1kdo/n1mm_view/archive/master.zip and unpack it.
+
+1. to run the various scripts
+
+    ```
+    conda activate n1mm_view
+    python collector.py
+   ```
+   etc.
+   
+#### Python 2.7 Windows Installation Instructions courtesy of Sheldon, VE1GPY/VE1SL 
 
 1. Install Python 2.7.13 from python.org https://www.python.org/downloads/ “Download Python 2.7.13”.  
 (Note: this is a link to the current-latest 64-bit build of Python for Windows: https://www.python.org/ftp/python/2.7.13/python-2.7.13.amd64.msi)
