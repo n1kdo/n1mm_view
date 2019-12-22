@@ -6,6 +6,7 @@ import os
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import cartopy.feature.nightshade as nightshade
 import cartopy.io.shapereader as shapereader
 import matplotlib
 import matplotlib.backends.backend_agg as agg
@@ -498,7 +499,6 @@ def draw_map(size, qsos_by_section):
         qsos = qsos_by_section.get(section_name)
         if qsos is None:
             qsos = 0
-            #logging.debug('section {} has no qsos!'.format(section_name))
 
         shape_file_name = 'shapes/{}.shp'.format(section_name)
         reader = shapereader.Reader(shape_file_name)
@@ -516,6 +516,13 @@ def draw_map(size, qsos_by_section):
             shape.attributes['name'] = section_name
             section_color = 'k' if color_index == 0 else color_palette[color_index]
             ax.add_geometries([shape.geometry], projection, linewidth=0.7, edgecolor="w", facecolor=section_color)
+
+    # show terminator
+    date = datetime.datetime.utcnow()  # this might have some timezone problems?
+    ax.add_feature(nightshade.Nightshade(date, alpha=0.5))
+
+    # show QTH marker
+    ax.plot(QTH_LONGITUDE, QTH_LATITUDE, '.', color='r')
 
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
