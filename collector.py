@@ -5,12 +5,13 @@ This program collects N1MM+ "Contact Info" broadcasts and saves data from the br
 in database tables.
 """
 
+import hashlib
 import logging
+import multiprocessing
+import socket
 import sqlite3
 import time
-import hashlib
-import socket
-from xml.dom.minidom import parseString
+import xml.parsers.expat
 
 import config
 import dataaccess
@@ -20,6 +21,8 @@ __copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
+
+run = True
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
@@ -68,11 +71,75 @@ class Stations:
     def lookup_station_id(self, station):
         sid = self.stations.get(station)
         if sid is None:
-            self.cursor.execute("insert into station (name) values (?);", (station,))
+            self.cursor.execute('insert into station (name) values (?);', (station,))
             self.db.commit()
             sid = self.cursor.lastrowid
             self.stations[station] = sid
         return sid
+
+
+class N1mmMessageParser:
+    """
+    this is a cheap and dirty class to parse N1MM+ broadcast messages.
+    It accepts the message and returns a dict, keyed by the element name.
+    This is unsuitable for any  for any other purpose, since it throws away the
+    outer _contactinfo_ (or whatever) element -- instead it returns the name of
+    the outer element as the value of the __messagetype__ key.
+    OTOH, hopefully it is faster than using the DOM-based minidom.parse
+    """
+    result = {}
+    lastElementName = None
+    lastElementValue = None
+
+    def __init__(self):
+        self.parser = None
+        self.result = None
+        self.lastElementValue = None
+        self.lastElementName = None
+
+    def parse(self, data):
+        self.parser = xml.parsers.expat.ParserCreate()
+        self.parser.StartElementHandler = self.start_element
+        self.parser.EndElementHandler = self.end_element
+        self.parser.CharacterDataHandler = self.char_data
+        self.lastElementValue = None
+        self.lastElementName = None
+
+        self.result = {}
+        self.parser.Parse(data)
+        return self.result
+
+    def start_element(self, name, attrs):
+        if self.lastElementName is not None:
+            self.result['__messagetype__'] = self.lastElementName
+        self.lastElementName = name
+        self.lastElementValue = None
+
+    def end_element(self, name):
+        if self.lastElementName is not None and self.lastElementValue is not None:
+            self.result[self.lastElementName] = self.lastElementValue
+        self.lastElementName = None
+        self.lastElementValue = None
+
+    def char_data(self, data):
+        self.lastElementValue = data
+
+
+def compress_message(msg):
+    new_msg = bytearray()
+    state = 0
+    count = 0
+    for byte in msg:
+        if state == 0 and byte == 10:
+            state = 1
+            continue
+        elif state == 1 and byte == 32:
+            continue
+        else:
+            state = 0
+            new_msg.append(byte)
+            count += 1
+    return new_msg
 
 
 def checksum(data):
@@ -80,7 +147,8 @@ def checksum(data):
     generate a unique ID for each QSO.
     this is using md5 rather than crc32 because it is hoped that md5 will have less collisions.
     """
-    return int(hashlib.md5(data).hexdigest(), 16)  # 1,000,000 iterations takes 35.506 sec
+    hval = data['timestamp'] + data['rxfreq'] + data['txfreq'] + data['operator'] + data['mode'] + data['call']
+    return int(hashlib.md5(hval.encode()).hexdigest(), 16)
 
 
 def convert_timestamp(s):
@@ -90,50 +158,37 @@ def convert_timestamp(s):
     return time.strptime(s, '%Y-%m-%d %H:%M:%S')
 
 
-def get_from_dom(dom, name):
-    """
-    safely extract a field from a dom.
-    return empty string on any failures.
-    """
-    try:
-        fc = dom.getElementsByTagName(name)[0].firstChild
-        if fc is None:
-            return ''
-        else:
-            return fc.nodeValue
-    except Exception as e:
-        return ''
-
-
-def process_message(db, cursor, operators, stations, data, seen):
+def process_message(parser, db, cursor, operators, stations, message, seen):
     """
     Process a N1MM+ contactinfo message
     """
-    #  logging.debug(data)
-    dom = parseString(data)
-    if dom.getElementsByTagName("contactinfo").length == 1 or dom.getElementsByTagName("contactreplace").length == 1:
+    message = compress_message(message)
+    #  logging.debug(message)
+    data = parser.parse(message)
+    message_type = data.get('__messagetype__') or ''
+    if message_type == 'contactinfo' or message_type == 'contactreplace':
         checksum_value = checksum(data)
         if checksum_value in seen:
             logging.debug('duplicate message')
             return
         seen.add(checksum_value)
-        qso_timestamp = get_from_dom(dom, "timestamp")
-        mycall = get_from_dom(dom, "mycall")
-        band = get_from_dom(dom, "band")
-        mode = get_from_dom(dom, "mode")
-        operator = get_from_dom(dom, "operator")
-        station_name = get_from_dom(dom, "StationName")
-        if station_name == '':
-            station_name = get_from_dom(dom, "NetBiosName")
+        qso_timestamp = data.get('timestamp')
+        mycall = data.get('mycall')
+        band = data.get('band')
+        mode = data.get('mode')
+        operator = data.get('operator')
+        station_name = data.get('StationName')
+        if station_name is None or station_name == '':
+            station_name = data.get('NetBiosName')
         station = station_name
-        rx_freq = int(get_from_dom(dom, "rxfreq")) * 10  # convert to Hz
-        tx_freq = int(get_from_dom(dom, "txfreq")) * 10
-        callsign = get_from_dom(dom, "call")
-        rst_sent = get_from_dom(dom, "snt")
-        rst_recv = get_from_dom(dom, "rcv")
-        exchange = get_from_dom(dom, "exchange1")
-        section = get_from_dom(dom, "section")
-        comment = get_from_dom(dom, "comment")
+        rx_freq = int(data.get('rxfreq')) * 10  # convert to Hz
+        tx_freq = int(data.get('txfreq')) * 10
+        callsign = data.get('call')
+        rst_sent = data.get('snt')
+        rst_recv = data.get('rcv')
+        exchange = data.get('exchange1')
+        section = data.get('section')
+        comment = data.get('comment') or ''
 
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
@@ -142,57 +197,88 @@ def process_message(db, cursor, operators, stations, data, seen):
                                   timestamp, mycall, band, mode, operator, station,
                                   rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                                   exchange, section, comment)
-    elif dom.getElementsByTagName("RadioInfo").length == 1:
-        logging.debug("Received radioInfo message")
-    elif dom.getElementsByTagName("contactdelete").length == 1:
-        qso_timestamp = get_from_dom(dom, "timestamp")
-        callsign = get_from_dom(dom, "call")
-        station_name = get_from_dom(dom, "StationName")
+    elif message_type == 'RadioInfo':
+        logging.debug('Received radioInfo message')
+    elif message_type == 'contactdelete':
+        qso_timestamp = data.get('timestamp')
+        callsign = data.get('call')
+        station_name = data.get('StationName')
         station = station_name
         #  convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
         dataaccess.delete_contact(db, cursor, timestamp, station, callsign)
-    elif dom.getElementsByTagName("dynamicresults").length == 1:
-        logging.debug("Received Score message")
+    elif message_type == 'dynamicresults':
+        logging.debug('Received Score message')
     else:
-        logging.warning('unknown message received, ignoring.')
-        logging.debug(data)
+        logging.warning('unknown message type {} received, ignoring.'.format(message_type))
+        logging.debug(message)
 
 
-def listener(db, cursor):
-    """
-    this is the UDP listener, the main loop.
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+def message_processor(q, event):
+    global run
+    logging.info('collector message_processor starting.')
+    db = sqlite3.connect(config.DATABASE_FILENAME)
     try:
-        s.bind(('', config.N1MM_BROADCAST_PORT))
-    except OSError as e:
-        logging.critical('Error connecting to the UDP stream.')
-        return
+        cursor = db.cursor()
+        dataaccess.create_tables(db, cursor)
 
-    operators = Operators(db, cursor)
-    stations = Stations(db, cursor)
+        operators = Operators(db, cursor)
+        stations = Stations(db, cursor)
+        parser = N1mmMessageParser()
+        message_count = 0
+        seen = set()
 
-    seen = set()
-    run = True
-    while run:
-        try:
-            udp_data = s.recv(BROADCAST_BUF_SIZE)
-            process_message(db, cursor, operators, stations, udp_data, seen)
-
-        except KeyboardInterrupt:
-            logging.info('Keyboard interrupt, shutting down...')
-            s.close()
-            run = False
+        thread_run = True
+        while not event.is_set() and thread_run:
+            try:
+                udp_data = q.get()
+                message_count += 1
+                process_message(parser, db, cursor, operators, stations, udp_data, seen)
+            except KeyboardInterrupt:
+                logging.debug('message processor stopping due to keyboard interrupt')
+                thread_run = False
+    finally:
+        db.close()
+        logging.info('db closed')
+        run = False
+    logging.info('collector message_processor exited, {} messages collected.'.format(message_count))
 
 
 def main():
-    logging.info('Collector started...')
-    db = sqlite3.connect(config.DATABASE_FILENAME)
-    cursor = db.cursor()
-    dataaccess.create_tables(db, cursor)
-    listener(db, cursor)
-    db.close()
+    try:
+        logging.info('Collector started...')
+        receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        process_event = None
+        proc = None
+        try:
+            receive_socket.bind(('', config.N1MM_BROADCAST_PORT))
+
+            q = multiprocessing.Queue()
+            process_event = multiprocessing.Event()
+
+            proc = multiprocessing.Process(name='message_processor', target=message_processor, args=(q, process_event))
+            proc.start()
+
+            receive_socket.settimeout(5)
+            global run
+            while run:
+                try:
+                    udp_data = receive_socket.recv(BROADCAST_BUF_SIZE)
+                    q.put(udp_data)
+                except socket.timeout:
+                    pass
+        finally:
+            if receive_socket is not None:
+                receive_socket.close()
+            if process_event is not None:
+                process_event.set()
+            if proc is not None:
+                proc.join(60)
+                if proc.is_alive():
+                    logging.warning('message processor did not exit upon request, killing.')
+                    proc.terminate()
+    except KeyboardInterrupt:
+        pass
 
     logging.info('Collector done...')
 

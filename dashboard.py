@@ -272,7 +272,7 @@ def update_charts(q, event, size):
     try:
         os.nice(10)
     except AttributeError:
-        logging.warn("can't be nice to windows")
+        logging.warning("can't be nice to windows")
     q.put((CRAWL_MESSAGE, 4, 'Chart engine starting...'))
     last_qso_timestamp = 0
     q.put((CRAWL_MESSAGE, 4, ''))
@@ -412,7 +412,7 @@ def main():
     logging.debug('waiting for update process to stop...')
     proc.join(60)
     if proc.is_alive():
-        logging.warn('chart engine did not exit upon request, killing.')
+        logging.warning('chart engine did not exit upon request, killing.')
         proc.terminate()
     logging.debug('update thread has stopped.')
     logging.info('dashboard exit')
