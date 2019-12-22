@@ -8,8 +8,8 @@ in database tables.
 import logging
 import sqlite3
 import time
-from hashlib import md5
-from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
+import hashlib
+import socket
 from xml.dom.minidom import parseString
 
 import config
@@ -80,9 +80,7 @@ def checksum(data):
     generate a unique ID for each QSO.
     this is using md5 rather than crc32 because it is hoped that md5 will have less collisions.
     """
-    # return int(md5(data).hexdigest()[:16], 16)  # 1,000,000 iterations takes 35.506 sec  # 32 bit
-    return int(md5(data).hexdigest(), 16)  # 1,000,000 iterations takes 35.506 sec
-    # return binascii.crc32(data) # 1,000,000 iterations takes takes 34.630 sec
+    return int(hashlib.md5(data).hexdigest(), 16)  # 1,000,000 iterations takes 35.506 sec
 
 
 def convert_timestamp(s):
@@ -165,12 +163,10 @@ def listener(db, cursor):
     """
     this is the UDP listener, the main loop.
     """
-    s = socket(AF_INET, SOCK_DGRAM)
-    s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.bind(('', config.N1MM_BROADCAST_PORT))
-    except:
+    except OSError as e:
         logging.critical('Error connecting to the UDP stream.')
         return
 
