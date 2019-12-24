@@ -88,10 +88,6 @@ def main():
     """
     logging.info('replayer started...')
 
-    # who am I?
-    host_name = socket.gethostname()
-    host_ip = socket.gethostbyname(host_name)
-
     db = sqlite3.connect(N1MM_LOG_FILE_NAME)
     cursor = db.cursor()
 
@@ -99,12 +95,6 @@ def main():
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-
-    try:
-        s.bind((host_ip, N1MM_BROADCAST_PORT))
-    except OSError:
-        logging.exception('Error connecting to the UDP stream.')
-        return
 
     cursor.execute('SELECT TS, band, Freq, QSXFreq, Operator, Mode, Call, CountryPrefix, WPXPrefix, \n'
                    'StationPrefix, Continent,  SNT, SentNr, RCV, NR, GridSquare, Exchange1, Sect, ZN, Points, \n'
@@ -127,7 +117,8 @@ def main():
         # there are ~4000 qsos in the database.
         # 4/sec will take ~1000 sec --> 17 minutes to play back -- the entire contest.
         # random.random returns a number from 0 to 1, so this will average about 2/sec.
-        time.sleep(random.random()/10.0)
+        #time.sleep(random.random()/10.0)
+        time.sleep(0.050)  # 50 milliseconds pacing.
 
     db.close()
 
