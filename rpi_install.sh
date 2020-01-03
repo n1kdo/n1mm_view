@@ -16,6 +16,7 @@ apt-get install -y git python3-dev python3-pygame python3-matplotlib python3-car
 
 # ramdisk and Apache
 mkdir -p /mnt/ramdisk
+mkdir -p /mnt/ramdisk_backup
 mount -t tmpfs -o rw,size=2G tmpfs /mnt/ramdisk
 if [[ $(grep -q "/mnt/ramdisk" "/etc/fstab") ]]
 then
@@ -25,8 +26,13 @@ else
 fi
 mount -a
 
+# persist ramdisk contents 
+cp ./init/*.service /lib/systemd/system/.
+systemctl enable ramdisk-sync.service
+systemctl start ramdisk_sync
+
 # Change HTML_DIR in n1mm_view_config.py to /var/ram/n1mm_view/html (or something similar).
-mkdir -p /var/ram/n1mm_view/html sudo chgrp -R www-data /var/ram/n1mm_view
+mkdir -p /mnt/ramdisk/n1mm_view/html sudo chgrp -R www-data /mnt/ramdisk/n1mm_view
 cp ./apache2/conf-available/n1mm_view.conf /etc/apache2/conf-available/.
 a2enconf n1mm_view
 apache2ctl restart
