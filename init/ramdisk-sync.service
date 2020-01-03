@@ -1,0 +1,14 @@
+[Unit]
+Before=umount.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStartPre=/bin/chown -Rf pi /mnt/ramdisk/
+ExecStart=/usr/bin/rsync -ar /mnt/ramdisk_backup/ /mnt/ramdisk/
+ExecStop=/usr/bin/rsync -ar /mnt/ramdisk /mnt/ramdisk_backup/
+ExecStopPost=/bin/chown -Rf pi /mnt/ramdisk_backup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
