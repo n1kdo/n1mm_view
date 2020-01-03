@@ -15,11 +15,11 @@ apt-get -y install python-dev python-pygame apache2
 apt-get install -y git python3-dev python3-pygame python3-matplotlib python3-cartopy python3-pykdtree python3-scipy
 
 # ramdisk and Apache
-mkdir -p /var/ram
-
-if [[ $(grep -q "/var/ram" "/etc/fstab") ]]
+mkdir -p /mnt/ramdisk
+mount -t tmpfs -o rw,size=2G tmpfs /mnt/ramdisk
+if [[ $(grep -q "/mnt/ramdisk" "/etc/fstab") ]]
 then
-    echo "tmpfs /var/ram  tmpfs nodev,nosuid,uid=33,gid=33,size=2M  0 0" >> /etc/fstab
+    echo "tmpfs /mnt/ramdisk  tmpfs rw,size=2G  0 0" >> /etc/fstab
 else
     echo "Warning: Filesystem table already shows ramdisk. Skipping."
 fi
@@ -32,5 +32,5 @@ a2enconf n1mm_view
 apache2ctl restart
 
 echo
-echo "Remember to check and edit the config.py file before starting the collector and dashboard."
+echo "Remember to update your config.py file before starting the collector and dashboard."
 echo
