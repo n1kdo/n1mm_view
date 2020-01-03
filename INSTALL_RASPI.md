@@ -1,20 +1,22 @@
 # How to install n1mm_view on Raspberry Pi
 
-1. install Raspian "buster" "lite" onto your Raspberry Pi -- we don't need the full version. https://www.raspberrypi.org/downloads/raspbian/
-1. log in
+1. install Raspian "buster" onto yoiur Raspberry Pi.  This could also be the "lite" version -- we don't require the full version. https://www.raspberrypi.org/downloads/raspbian/
+1. log in, set up your Pi's internet connection
 1. open terminal window
 1. Run the following four commands
 * `git clone https://github.com/n1kdo/n1mm_view.git`
 this downloads the latest copy of n1mm_view to your pi
 * `cd n1mm_view`
-This moves into the project directory
+This moves into the N1MM_view project directory
 * `pip install numpy`
 make sure library for higher math computations is available
 * `sudo ./rpi_install.sh` 
 Installs the remaining libraries and prerequisites. also gets all current updates for Raspbian.) This also handles everything in the Configure_Apache document. If you will not use the webserver option, you can simply stop the apache daemon (`sudo apachectl stop`)
-This last command will run for quite some time. We gave it a lot of things to do.
+This last command will run for quite some time. 
+The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+. We gave it a lot of things to do so you won't need to do them.
+While you are waiting, you could create a splash screen for your event: a 1000x1000 portable network graphics (.png) image in RGB format works great.   
 
-Update config.py with your operating settings. "MyClubCall" is a placeholder. For pre-testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
+Edit the config.py file with your operating settings. "MyClubCall" is a placeholder. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
 
 # Running N1MM_view
 There are two programs of interest.  You will want to open a separate terminal window for each.
@@ -40,19 +42,16 @@ deleting the database:
 
 `$ rm n1mm_view.db` -- then restart the collector immediately.
 
-## How to install the autostart scripts
+## Optional: How to install the autostart scripts
 
 You can install systemd configuration files on your system to make the
 collector and dashboard processes start automatically at boot time.
 
-1. get root (sudo bash, or whatever way you like)
-1. `cp init/*.service /lib/systemd/system`
-1. `systemctl enable n1mm_view_collector`
-1. `systemctl enable n1mm_view_dashboard`
+1. `sudo systemctl enable n1mm_view_collector`
+1. `sudo systemctl enable n1mm_view_dashboard`
 
 Upon reboot, the collector and dashboard should start automatically.  
-Consider this rather experimental at this time.  It might work.
-It works for me.
+Consider this experimental at this time.  It might work. It works for me.
 
 ## Challenges, "Gotchas", and Caveat Emptor
 
