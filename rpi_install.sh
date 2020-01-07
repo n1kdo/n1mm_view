@@ -32,11 +32,12 @@ systemctl enable ramdisk-sync.service
 systemctl start ramdisk_sync
 
 # Change HTML_DIR in n1mm_view_config.py to /var/ram/n1mm_view/html (or something similar).
-mkdir -p /mnt/ramdisk/n1mm_view/html sudo chgrp -R www-data /mnt/ramdisk/n1mm_view
+mkdir -p /mnt/ramdisk/n1mm_view/html 
+sudo chgrp -R www-data /mnt/ramdisk/n1mm_view
 cp ./apache2/conf-available/n1mm_view.conf /etc/apache2/conf-available/.
 a2enconf n1mm_view
 apache2ctl restart
 
 echo
-echo "Remember to update your config.py file before starting the collector and dashboard."
+echo "Remember to update config.py file with your settings before starting the collector and dashboard."
 echo
