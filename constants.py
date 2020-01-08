@@ -115,6 +115,7 @@ CONTEST_SECTIONS = {
     'ORG': 'Orange',
     'OR': 'Oregon',
     'PAC': 'Pacific',
+    'PE': 'Prince Edward Island',
     'PR': 'Puerto Rico',
     'QC': 'Quebec',
     'RI': 'Rhode Island',
