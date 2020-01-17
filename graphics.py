@@ -100,6 +100,7 @@ def show_graph(screen, size, surf):
 
 def save_image(image_data, image_size, filename):
     surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
+    logging.info('Saving file to %s', filename)       
     pygame.image.save(surface, filename)
     pass
 
@@ -490,8 +491,12 @@ def draw_map(size, qsos_by_section):
     ax.add_feature(cfeature.LAND, color='#113311')
 
     ax.coastlines('50m')
-
-    ranges = [0, 1, 10, 20, 50, 100, 200]  # , 500]  # , 1000]
+    ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
+                color='white', size=48, weight='bold')
+    
+    ax.text(0.83, 0,datetime.datetime.utcnow().strftime("%d %b %Y %H:%M %Zz"),
+               transform = ax.transAxes,style='italic', size=14,color='white')
+    ranges = [0, 1, 2, 10, 20, 50, 100]  # , 500]  # , 1000]
     num_colors = len(ranges)
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
 

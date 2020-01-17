@@ -24,12 +24,13 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
+      
 
 def makePNGTitle(image_dir, title):
     return ''.join([image_dir, '/', re.sub('[^\w\-_]', '_', title), '.png'])
 
 
-def create_images(size, image_dir, base_map, last_qso_timestamp):
+def create_images(size, image_dir, last_qso_timestamp):
     """
     load data from the database tables
     """
@@ -51,11 +52,18 @@ def create_images(size, image_dir, base_map, last_qso_timestamp):
         cursor = db.cursor()
         logging.debug('database connected')
 
+        # Handy routine to dump the database to help debug strange problems
+        #if logging.getLogger().isEnabledFor(logging.DEBUG):
+        #   cursor.execute('SELECT timestamp, callsign, section, operator_id, operator.name FROM qso_log join operator WHERE operator.id = operator_id')
+        #  for row in cursor: 
+        #      logging.debug('QSO: %s\t%s\t%s\t%s\t%s' % (row[0], row[1], row[2], row[3], row[4])) 
+              
         # get timestamp from the last record in the database
         last_qso_time, message = dataaccess.get_last_qso(cursor)
 
         logging.debug('old_timestamp = %d, timestamp = %d', last_qso_timestamp, last_qso_time)
         if last_qso_time != last_qso_timestamp:
+            # last_qso_time is passed as the result and updated in call to this function.
             logging.debug('data updated!')
             data_updated = True
 
@@ -74,8 +82,8 @@ def create_images(size, image_dir, base_map, last_qso_timestamp):
             # load QSO rates per Hour by Band
             qsos_per_hour, qsos_per_band = dataaccess.get_qsos_per_hour_per_band(cursor)
 
-            # load QSOs by Section
-            qsos_by_section = dataaccess.get_qsos_by_section(cursor)
+        # load QSOs by Section
+        qsos_by_section = dataaccess.get_qsos_by_section(cursor)
 
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
@@ -141,7 +149,7 @@ def create_images(size, image_dir, base_map, last_qso_timestamp):
     # map gets updated every time so grey line moves
     try:
         # There is a memory leak in the next code -- is there?
-        image_data, image_size = graphics.draw_map(size, qsos_by_section, base_map)
+        image_data, image_size = graphics.draw_map(size, qsos_by_section)
         filename = makePNGTitle(image_dir, 'sections_worked_map')
         graphics.save_image(image_data, image_size, filename)
         gc.collect()
@@ -149,9 +157,9 @@ def create_images(size, image_dir, base_map, last_qso_timestamp):
     except Exception as e:
         logging.exception(e)
 
-    if data_updated:
-        if config.POST_FILE_COMMAND is not None:
-            os.system(config.POST_FILE_COMMAND)
+    #if data_updated:   # Data is always updated since the sections map is always updated. Let rsync command handle this.
+    if config.POST_FILE_COMMAND is not None:
+       os.system(config.POST_FILE_COMMAND)
 
     return last_qso_time
 
@@ -159,17 +167,25 @@ def create_images(size, image_dir, base_map, last_qso_timestamp):
 def main():
     logging.info('headless startup...')
     size = (1280, 1024)
-    image_dir = '.'
-
+    image_dir = config.IMAGE_DIR
+    logging.debug("Checking for IMAGE_DIR")
+    logging.info("IMAGE_DIR set to %s - checking if exists" % config.IMAGE_DIR)
+    # Check if the dir given exists and create if necessary
+    if not os.path.exists(config.IMAGE_DIR):
+       logging.error("%s did not exist - creating..." % config.IMAGE_DIR)
+       os.makedirs(config.IMAGE_DIR)
+    if not os.path.exists(config.IMAGE_DIR):
+       sys.exit('Image %s directory could not be created' % config.IMAGE_DIR)
+       
     logging.info('creating world...')
-    base_map = graphics.create_map()
+#    base_map = graphics.create_map()
 
     run = True
-    last_qso_timestamp = ''
+    last_qso_timestamp = '' 
     logging.info('headless running...')
     while run:
         try:
-            create_images(size, image_dir, base_map, last_qso_timestamp)
+            last_qso_timestamp = create_images(size, image_dir, last_qso_timestamp)
             time.sleep(config.DATA_DWELL_TIME)
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt, shutting down...')
