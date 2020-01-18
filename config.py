@@ -35,10 +35,12 @@ DATA_DWELL_TIME = 60
 LOG_LEVEL = logging.WARN
 #
 """images directory, or None if not writing image files"""
-IMAGE_DIR = '.'
+IMAGE_DIR = '/mnt/ramdisk/n1mm_view/html'
 IMAGE_WIDTH = 1920
 IMAGE_HEIGHT = 1080
 """ set HEADLESS True to not open graphics window. This is for using only the Apache option."""
 HEADLESS = False
-""" If set, this command is run after creating the files (used to rsync PNG files to a remote web server) """
-POST_FILE_COMMAND = None  # 'rsync -avz <HTML_DIR from above/*> <user@server>/<remote dir>'
+
+# This should match the directory above we want to send from the directory to which we write.
+POST_FILE_COMMAND = 'rsync -avz /mnt/ramdisk/n1mm_view/html/* sparc:www/n1mm_view/html'
+

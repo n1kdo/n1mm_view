@@ -111,9 +111,9 @@ def get_last_qso(cursor) :
     message = ''
     for row in cursor:
         last_qso_time = row[0]
-    message = 'Last QSO: %s %s %s on %s by %s at %s' % (
-        row[1], row[2], row[3], constants.Bands.BANDS_TITLE[row[5]], row[4],
-        datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
+        message = 'Last QSO: %s %s %s on %s by %s at %s' % (
+            row[1], row[2], row[3], constants.Bands.BANDS_TITLE[row[5]], row[4],
+            datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
     logging.debug(message)
     return last_qso_time, message
 
@@ -202,4 +202,5 @@ def get_qsos_by_section(cursor):
     cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section;')
     for row in cursor:
         qsos_by_section[row[0]] = row[1]
+        logging.debug('Section %s',row[0])
     return qsos_by_section
