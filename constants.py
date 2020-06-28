@@ -3,9 +3,16 @@ this file contains useful constants for n1mm_view application.
 """
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2020 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
+import time
+import logging
+import config
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                    level=config.LOG_LEVEL)
+logging.Formatter.converter = time.gmtime
 
 class Bands:
     """
@@ -41,12 +48,16 @@ class Modes:
     SIMPLE_MODE_POINTS = [0, 2, 1, 2]  # n/a, CW, phone, digital
     SIMPLE_MODES = {'N/A': 0, 'CW': 1,
                     'AM': 2, 'FM': 2, 'LSB': 2, 'USB': 2,
-                    'RTTY': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3, 'FT4': 3,
+                    'RTTY': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3,
                     }
 
     @classmethod
     def get_mode_number(cls, mode_name):
-        return Modes.MODES.get(mode_name)
+        mode_number =  Modes.MODES.get(mode_name) 
+        if mode_number is None:
+            logging.warning('unknown mode {}'.format(mode_name))
+            mode_number = 0
+        return mode_number
 
     @classmethod
     def count(cls):

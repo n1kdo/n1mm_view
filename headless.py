@@ -24,7 +24,6 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
-      
 
 def makePNGTitle(image_dir, title):
     return ''.join([image_dir, '/', re.sub('[^\w\-_]', '_', title), '.png'])

@@ -9,7 +9,7 @@ import config
 import constants
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2019, 2020, Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
@@ -164,7 +164,7 @@ def get_qso_band_modes(cursor):
 
     cursor.execute('SELECT COUNT(*), band_id, mode_id FROM qso_log GROUP BY band_id, mode_id;')
     for row in cursor:
-        qso_band_modes[row[1]][constants.Modes.MODE_TO_SIMPLE_MODE[row[2]]] = row[0]
+        qso_band_modes[row[1]][constants.Modes.MODE_TO_SIMPLE_MODE[row[2]]] += row[0]
     return qso_band_modes
 
 
