@@ -53,7 +53,7 @@ class Modes:
 
     @classmethod
     def get_mode_number(cls, mode_name):
-        mode_number =  Modes.MODES.get(mode_name) 
+        mode_number = Modes.MODES.get(mode_name)
         if mode_number is None:
             logging.warning('unknown mode {}'.format(mode_name))
             mode_number = 0

@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import sqlite3
+import sys
 import time
 
 import config
@@ -171,10 +172,10 @@ def main():
     logging.info("IMAGE_DIR set to %s - checking if exists" % config.IMAGE_DIR)
     # Check if the dir given exists and create if necessary
     if not os.path.exists(config.IMAGE_DIR):
-       logging.error("%s did not exist - creating..." % config.IMAGE_DIR)
-       os.makedirs(config.IMAGE_DIR)
+        logging.error("%s did not exist - creating..." % config.IMAGE_DIR)
+        os.makedirs(config.IMAGE_DIR)
     if not os.path.exists(config.IMAGE_DIR):
-       sys.exit('Image %s directory could not be created' % config.IMAGE_DIR)
+        sys.exit('Image %s directory could not be created' % config.IMAGE_DIR)
        
     logging.info('creating world...')
 #    base_map = graphics.create_map()
