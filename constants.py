@@ -48,7 +48,7 @@ class Modes:
     SIMPLE_MODE_POINTS = [0, 2, 1, 2]  # n/a, CW, phone, digital
     SIMPLE_MODES = {'N/A': 0, 'CW': 1,
                     'AM': 2, 'FM': 2, 'LSB': 2, 'USB': 2,
-                    'RTTY': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3,
+                    'RTTY': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3, 'FT4': 3, 'MFSK': 3,
                     }
 
     @classmethod
