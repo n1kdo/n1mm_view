@@ -101,7 +101,7 @@ menu option to open the "Configurer".
 
 From the "Configurer" window, select the "Broadcast Data" tab.  
 
-In the "Broadcast Data" tab, check the box in front of the word "content".  
+In the "Broadcast Data" tab, check the box in front of the word "contacts".  
 Set the IP address on that same line to be either the single, specific IP of the Raspberry Pi 
 running collector.py, or set it to the proper broadcast address for your subnet. 
 
