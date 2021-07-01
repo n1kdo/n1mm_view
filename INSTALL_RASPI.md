@@ -10,10 +10,11 @@ this downloads the latest copy of n1mm_view to your pi
 This moves into the N1MM_view project directory
 * `pip install numpy`
 make sure library for higher math computations is available
+* `chmod +x rpi_install.sh`
 * `sudo ./rpi_install.sh` 
 Installs the remaining libraries and prerequisites. also gets all current updates for Raspbian.) This also handles everything in the Configure_Apache document. If you will not use the webserver option, you can simply stop the apache daemon (`sudo apachectl stop`)
 This last command will run for quite some time. 
-The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+. We gave it a lot of things to do so you won't need to do them.
+The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+ (18 minutes on a Pi 4B). We gave it a lot of things to do so you won't need to do them.
 While you are waiting, you could create a splash screen for your event: a 1000x1000 portable network graphics (.png) image in RGB format works great.   
 
 Edit the config.py file with your operating settings. "MyClubCall" is a placeholder. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
