@@ -20,7 +20,7 @@ from config import *
 from constants import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2019, 2021 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
 RED = pygame.Color('#ff0000')

@@ -3,22 +3,24 @@
 n1mm_view log replayer
 this program replays old N1MM+ log files as udp broadcasts for testing n1mm_view.
 
-NOTE: the sqlite3 dll that ships with windows python won't read the N1MM+ log file.
-You must get the latest sqlite3 dll from https://www.sqlite.org/download.html and
+NOTE: the sqlite3 dll that ships with windows python may not be able to read the
+N1MM+ database file.
+You can get the latest sqlite3 dll from https://www.sqlite.org/download.html and
 replace the version in your python dlls folder.  I've not tried this on Linux.
 Make sure your download the version for the same architecture as your python
 installation (32- vs. 64-bit.)
 """
 
-import random
-import sqlite3
-import time
+import os
 import socket
+import sqlite3
+import sys
+import time
 
 from config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019, 2021 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -88,39 +90,38 @@ def main():
     """
     logging.info('replayer started...')
 
-    db = sqlite3.connect(N1MM_LOG_FILE_NAME)
-    cursor = db.cursor()
+    if not os.path.exists(N1MM_LOG_FILE_NAME):
+        logging.error('cannot find N1MM database file %s', N1MM_LOG_FILE_NAME)
+        sys.exit(1)
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    db_uri = 'file:{}?mode=ro'.format(N1MM_LOG_FILE_NAME)
+    with sqlite3.connect(db_uri, uri=True) as db:
+        cursor = db.cursor()
 
-    cursor.execute('SELECT TS, band, Freq, QSXFreq, Operator, Mode, Call, CountryPrefix, WPXPrefix, \n'
-                   'StationPrefix, Continent,  SNT, SentNr, RCV, NR, GridSquare, Exchange1, Sect, ZN, Points, \n'
-                   'NetBiosName \n'
-                   'FROM DXLOG order by TS;')
-    qso_number = 0
-    for row in cursor:
-        ts = row[0]
-        band = convert_band(row[1])
-        rx_freq = row[2] * 100
-        tx_freq = row[3] * 100
-        values = (ts, band, rx_freq, tx_freq, row[4], row[5], row[6], row[7],
-                  row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15],
-                  row[16], row[17], row[18], row[19], row[20])
-        payload = TEMPLATE % values
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-        s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
-        qso_number += 1
-        logging.info("sent qso # %d timestamp %s" % (qso_number, ts))
-        # there are ~4000 qsos in the database.
-        # 4/sec will take ~1000 sec --> 17 minutes to play back -- the entire contest.
-        # random.random returns a number from 0 to 1, so this will average about 2/sec.
-        #time.sleep(random.random()/10.0)
-        time.sleep(0.050)  # 50 milliseconds pacing.
+        cursor.execute('SELECT TS, band, Freq, QSXFreq, Operator, Mode, Call, CountryPrefix, WPXPrefix, \n'
+                       'StationPrefix, Continent,  SNT, SentNr, RCV, NR, GridSquare, Exchange1, Sect, ZN, Points, \n'
+                       'NetBiosName \n'
+                       'FROM DXLOG order by TS;')
+        qso_number = 0
+        for row in cursor:
+            ts = row[0]
+            band = convert_band(row[1])
+            rx_freq = row[2] * 100
+            tx_freq = row[3] * 100
+            values = (ts, band, rx_freq, tx_freq, row[4], row[5], row[6], row[7],
+                      row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15],
+                      row[16], row[17], row[18], row[19], row[20])
+            payload = TEMPLATE % values
 
-    db.close()
+            s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
+            qso_number += 1
+            logging.info("sent qso # %d timestamp %s" % (qso_number, ts))
+            time.sleep(0.050)  # 50 milliseconds pacing.
 
     logging.info('replayer done...')
 
