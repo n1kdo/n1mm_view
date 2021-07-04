@@ -99,7 +99,7 @@ def main():
         graphics.show_graph(screen, size, image)
         pygame.display.flip()
 
-        # wait for a key press
+        # wait for a Q key press
         run = True
         while run:
             for event in pygame.event.get():

@@ -10,6 +10,7 @@ import cartopy.feature.nightshade as nightshade
 import cartopy.io.shapereader as shapereader
 import matplotlib
 import matplotlib.backends.backend_agg as agg
+import matplotlib.cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pygame
@@ -53,6 +54,7 @@ def init_display():
     # x11 needed for Raspbian Stretch.  Put fbcon before directfb to not hang composite output
     drivers = ['x11', 'fbcon', 'directfb', 'ggi', 'svgalib', 'directx', 'windib']
     found = False
+    driver = None
     for driver in drivers:
         # Make sure that SDL_VIDEODRIVER is set
         if not os.getenv('SDL_VIDEODRIVER'):
@@ -66,7 +68,7 @@ def init_display():
         logging.debug('using %s driver', driver)
         break
 
-    if not found:
+    if not found or driver is None:
         raise Exception('No suitable video driver found!')
 
     size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
@@ -505,19 +507,21 @@ def draw_map(size, qsos_by_section):
         if qsos is None:
             qsos = 0
 
+        color_index = 0
+        for range_max in ranges:
+            if range_max == -1 or qsos <= range_max:
+                break
+            color_index += 1
+            if color_index == num_colors:
+                break
+
         shape_file_name = 'shapes/{}.shp'.format(section_name)
         reader = shapereader.Reader(shape_file_name)
         shapes = reader.records()
-        shape = next(shapes)
-        if shape is not None:
-            color_index = 0
-            for range_max in ranges:
-                if range_max == -1 or qsos <= range_max:
-                    break
-                color_index += 1
-                if color_index == num_colors:
-                    break
-
+        while True:
+            shape = next(shapes, None)
+            if shape is None:
+                break
             shape.attributes['name'] = section_name
             section_color = 'k' if color_index == 0 else color_palette[color_index]
             ax.add_geometries([shape.geometry], projection, linewidth=0.7, edgecolor="w", facecolor=section_color)

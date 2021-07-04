@@ -74,6 +74,9 @@ def record_contact(db, cursor, operators, stations,
         station, rx_freq, tx_freq, callsign, rst_sent,
         rst_recv, exchange, section, comment))
 
+    if band_id is None or mode_id is None or operator_id is None or station_id is None:
+        logging.warning('cannot log this QSO, bad data.')
+        return
     cursor.execute(
         'insert into qso_log \n'
         '    (timestamp, mycall, band_id, mode_id, operator_id, station_id , rx_freq, tx_freq, \n'
