@@ -22,7 +22,7 @@ Edit the config.py file with your operating settings. "MyClubCall" is a placehol
 # Running N1MM_view
 There are two programs of interest.  You will want to open a separate terminal window for each.
 
-First, start the collector: `$ ./collector.py` -- the collector will create the database
+First, start the collector: `./collector.py` -- the collector will create the database
 `n1mm_view.db` if it is not present.
 
 After the collector has started, use your other terminal window and start the dashboard:
