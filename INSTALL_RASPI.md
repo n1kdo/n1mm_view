@@ -1,6 +1,6 @@
 # How to install n1mm_view on Raspberry Pi
 
-1. install Raspian "buster" onto yoiur Raspberry Pi.  This could also be the "lite" version -- we don't require the full version. https://www.raspberrypi.org/downloads/raspbian/
+1. install Raspian "buster" onto your Raspberry Pi.  This could also be the "lite" version -- we don't require the full version. https://www.raspberrypi.org/downloads/raspbian/
 1. log in, set up your Pi's internet connection
 1. open terminal window
 1. Run the following four commands
