@@ -5,13 +5,13 @@ Install Apache
 
    While the SD card in a Pi lasts a long time, it's write cycles are not limitless. One option would be to write the PNG files to a RAM disk. As the nature of these files are temporary, losing the files at boot time is not a major issue since when dashboard.py runs, it regenerates all the files.
 
-   To do this, assume you want to call the RAM drive /var/ram
+   To do this, assume you want to call the RAM drive /mnt/ramdisk
    ```bash
-   sudo mkdir /var/ram
+   sudo mkdir /mnt/ramdisk
    sudo nano /etc/fstab
    add a line that reads (these are TAB characters, not spaces):
 
-   tmpfs  /var/ram tmpfs nodev,nosuid,uid=33,gid=33,size=2M 0 0
+   tmpfs  /mnt/ramdisk tmpfs nodev,nosuid,uid=33,gid=33,size=2M 0 0
 
    Save and exit the file
    sudo mount -a
@@ -28,19 +28,19 @@ Install Apache
       tmpfs              94552       0     94552   0% /run/user/1000
       tmpfs              94552       0     94552   0% /run/user/1001
    ```
-   Change HTML_DIR in n1mm_view_config.py to /var/ram/n1mm_view/html (or something similar).
+   Change HTML_DIR in n1mm_view_config.py to /mnt/ramdisk/n1mm_view/html (or something similar).
 
 Set HTML directory in config file
 Create the directory if necessary and allow the www-data group to read the directory:
 
-   mkdir -p /var/ram/n1mm_view/html
-   sudo chgrp -R www-data /var/ram/n1mm_view
+   mkdir -p /mnt/ramdisk/n1mm_view/html
+   sudo chgrp -R www-data /mnt/ramdisk/n1mm_view
 
 Modify Apache config (one of two ways):
 Add virtual directory and Alias statement to apache2.conf or create n1mm_view.conf in /etc/apache2/conf-available
 ```ApacheConf
-Alias /n1mm_view "/var/ram/n1mm_view/html/"
-<Directory "/var/ram/n1mm_view/html/">
+Alias /n1mm_view "/mnt/ramdisk/n1mm_view/html/"
+<Directory "/mnt/ramdisk/n1mm_view/html/">
    Options Indexes FollowSymLinks
    AllowOverride None
    Require all granted
