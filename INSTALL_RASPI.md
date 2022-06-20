@@ -1,6 +1,6 @@
 # How to install n1mm_view on Raspberry Pi
 
-1. install Raspian "buster" onto yoiur Raspberry Pi.  This could also be the "lite" version -- we don't require the full version. https://www.raspberrypi.org/downloads/raspbian/
+1. install Raspian "buster" or "bullseye" onto your Raspberry Pi.  This could also be the "lite" version -- we don't require the full version. https://www.raspberrypi.org/downloads/raspbian/
 1. log in, set up your Pi's internet connection
 1. open terminal window
 1. Run the following four commands
@@ -46,12 +46,15 @@ deleting the database:
 ## Optional: How to install the autostart scripts
 
 You can install systemd configuration files on your system to make the
-collector and dashboard processes start automatically at boot time.
+collector and dashboard processes start automatically at boot time. Note this assumes the rpi_install script copied init/*.service to /lib/systemd/system/.
 
 1. `sudo systemctl enable n1mm_view_collector`
 1. `sudo systemctl enable n1mm_view_dashboard`
 
-Upon reboot, the collector and dashboard should start automatically.  
+### If running the headless script to generate images, install this service.
+3. `sudo systemctl enable n1mm_view_headless`
+
+Upon reboot, the collector and dashboard [and optionally headless] should start automatically.  
 Consider this experimental at this time.  It might work. It works for me.
 
 ## Challenges, "Gotchas", and Caveat Emptor

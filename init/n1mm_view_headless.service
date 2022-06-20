@@ -1,0 +1,25 @@
+#
+# /lib/systemd/system/n1mm_view_headless.service
+#
+# systemd startup file for n1mm_view headless service
+#
+
+[Unit]
+Description=N1MM View Headless process
+After=gettty@tty3.service
+
+[Service]
+User=pi
+Group=pi
+Type=simple
+WorkingDirectory=/home/pi/n1mm_view
+ExecStart=/home/pi/n1mm_view/headless.py
+StandardInput=tty
+StandardOutput=syslog
+StandardError=syslog
+TTYPath=/dev/tty3
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=default.target
