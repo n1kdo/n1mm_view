@@ -46,7 +46,7 @@ deleting the database:
 ## Optional: How to install the autostart scripts
 
 You can install systemd configuration files on your system to make the
-collector and dashboard processes start automatically at boot time. Note this assumes the installs script copied init/*.service to /lib/systemd/system/.
+collector and dashboard processes start automatically at boot time. Note this assumes the rpi_install script copied init/*.service to /lib/systemd/system/.
 
 1. `sudo systemctl enable n1mm_view_collector`
 1. `sudo systemctl enable n1mm_view_dashboard`
