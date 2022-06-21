@@ -1,5 +1,31 @@
 # How to install n1mm_view on Windows
 
+
+# New Windows Install 2022-05-18
+
+The Earth has traveled a few orbits around the Sun since the last time 
+the windows installation instructions were updated.
+
+* install miniconda (see https://conda.io/projects/conda/en/latest/user-guide/install/windows.html)
+  * if you are using chocolatey 'choco install miniconda3'
+* open 'Anaconda Powershell Prompt'
+  * `conda create --name n1mm_view python=3.10`
+  * `conda activate n1mm_view`
+  * `conda install cartopy`
+  * `pip install pygame`
+* Fetch code from github: https://github.com/n1kdo/n1mm_view/archive/refs/heads/master.zip
+  * unpack this zip file
+  * change directory into the location you unpacked the zip
+  * `python collector.py `
+  * open a new Anaconda Powershell Prompt
+  * `conda activate n1mm_view`
+  * `python dashboard.py `
+
+
+# Old instructions.  
+
+These old instructions are being kept around for a short while.
+
 #### _Preliminary_ Python 3 version...
 
 1. Fetch _miniconda_ from https://docs.conda.io/en/latest/miniconda.html and install it.  
