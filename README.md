@@ -4,7 +4,7 @@
  statistics for N4N ARRL Field Day.
 
 It listens to N1MM+ or TR4W "Contact Info" UDP broadcasts (see the 
-[N1MM+ documentation](http://n1mm.hamdocs.com/tiki-index.php?page=UDP+Broadcasts))
+[N1MM+ documentation](https://n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/))
 and collects the contact info into a database.  The contact info data 
 is used to create useful data screens that are continuously rotated.
 
