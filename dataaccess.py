@@ -47,7 +47,7 @@ def create_tables(db, cursor):
                    '     exchange char(4),\n'
                    '     section char(4),\n'
                    '     comment TEXT,\n'
-                   '     msgID   char(36) UNIQUE);')
+                   '     msgID   char(32) UNIQUE NOT NULL);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_band_id ON qso_log(band_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_mode_id ON qso_log(mode_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_operator_id ON qso_log(operator_id);')
@@ -55,6 +55,42 @@ def create_tables(db, cursor):
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_section ON qso_log(section);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_msgID ON qso_log(msgID);')
     db.commit()
+
+def record_contact_combined(db, cursor, operators, stations,
+                   timestamp, mycall, band, mode, operator, station,
+                   rx_freq, tx_freq, callsign, rst_sent, rst_recv,
+                   exchange, section, comment, msgID):
+    """
+    record the results of a contact_message
+    """
+    band_id = constants.Bands.get_band_number(band)
+    mode_id = constants.Modes.get_mode_number(mode)
+    operator_id = operators.lookup_operator_id(operator)
+    station_id = stations.lookup_station_id(station)
+
+    logging.info('[dataaccess] QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
+        time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
+        mycall, band,
+        mode, operator,
+        station, rx_freq, tx_freq, callsign, rst_sent,
+        rst_recv, exchange, section, comment, msgID))
+
+    if band_id is None or mode_id is None or operator_id is None or station_id is None:
+        logging.warning('[dataaccess] cannot log this QSO, bad data.')
+        return
+    try:
+        cursor.execute(
+            'insert or replace into qso_log \n'
+            '    (timestamp, mycall, band_id, mode_id, operator_id, station_id , rx_freq, tx_freq, \n'
+            '     callsign, rst_sent, rst_recv, exchange, section, comment, msgID)\n'
+            '    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+            (calendar.timegm(timestamp), mycall, band_id, mode_id, operator_id, station_id, rx_freq, tx_freq,
+             callsign, rst_sent, rst_recv, exchange, section, comment, msgID))
+
+        db.commit()
+    except Exception as err:
+        logging.warning('[dataaccess] Insert Failed: %s\nError: %s' % (msgID, str(err)))
+
 
 
 def record_contact(db, cursor, operators, stations,
@@ -79,7 +115,7 @@ def record_contact(db, cursor, operators, stations,
     if band_id is None or mode_id is None or operator_id is None or station_id is None:
         logging.warning('[dataaccess] cannot log this QSO, bad data.')
         return
-    try
+    try:
         cursor.execute(
             'insert into qso_log \n'
             '    (timestamp, mycall, band_id, mode_id, operator_id, station_id , rx_freq, tx_freq, \n'
@@ -114,7 +150,7 @@ def update_contact(db, cursor, operators, stations,
     if band_id is None or mode_id is None or operator_id is None or station_id is None:
         logging.warning('[dataaccess] cannot log this QSO, bad data.')
         return
-    try
+    try:
         cursor.execute(
             'update qso_log \n'
             '    set timestamp=?, mycall=?, band_id=?, mode_id=?, operator_id=?, station_id=? , rx_freq=?, tx_freq=?, \n'
@@ -143,6 +179,7 @@ def delete_contact(db, cursor, timestamp, station, callsign):
     except Exception as e:
         logging.exception('[dataaccess] Exception deleting contact from db.')
         return ''
+
 def delete_contact_by_msgID(db, cursor, msgID):
     """
     Delete the results of a delete in N1MM
@@ -151,9 +188,9 @@ def delete_contact_by_msgID(db, cursor, msgID):
     """ station_id = stations.lookup_station_id(station)
 """
 
-    logging.info('[dataaccess] DELETEQSOByMsgID: %s' % (msgID))
+    logging.debug('[dataaccess] DELETEQSOByMsgID: %s' % (msgID))
     try:
-        cursor.execute("delete from qso_log where msgID = ?", (msgID,))
+        cursor.execute('delete from qso_log where msgID = ?;', (str(msgID),))
         db.commit()
     except Exception as e:
         logging.exception('[dataaccess] Exception deleting contact (by msgID) from db.')

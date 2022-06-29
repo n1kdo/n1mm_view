@@ -164,27 +164,18 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
     """
     bInsert = False
     message = compress_message(message)
-    logging.debug(message)
+    #logging.debug(message)
     data = parser.parse(message)
     message_type = data.get('__messagetype__') or ''
     logging.debug('Received UDP message %s' % (message_type))
-    if message_type == 'contactinfo':
+    if message_type == 'contactinfo' or message_type == 'contactreplace':
         msgID = data.get('ID') or '';
+        
+        # If no ID tag from N1MM, generate a hash for uniqueness
         if len(msgID) == 0:
-           checksum_value = checksum(data)
-           if checksum_value in seen:
-              logging.debug('duplicate message')
-              return
-           seen.add(checksum_value)
+           msgID = checksum(data)
         else:
            msgID = msgID.replace('-','')
-           if msgID in seen:
-              logging.debug('duplicate message (via msgID)')
-              return
-           logging.debug('Adding %s to seen' % (msgID))
-           seen.add(msgID)
-           #for val in seen:
-           #   logging('Seen element = %s' % (val))
             
         qso_timestamp = data.get('timestamp')
         mycall = data.get('mycall')
@@ -208,87 +199,24 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
 
-        dataaccess.record_contact(db, cursor, operators, stations,
-                                  timestamp, mycall, band, mode, operator, station,
-                                  rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                                  exchange, section, comment, msgID)
-    elif message_type == 'contactreplace':
-        msgID = data.get('ID') or '';
-        if len(msgID) == 0:
-           checksum_value = checksum(data)
-           if checksum_value in seen:
-              logging.debug('Contact replace matches prior checksum in seen')
-           else:
-              seen.add(checksum_value)
-        else:
-           msgID = msgID.replace('-','')
-           if msgID in seen:
-              logging.debug('Contact replace matches prior ID in seen %s' % (msgID))
-           else:
-              logging.debug('Adding %s to seen' % (msgID))
-              bInsert = True
-              logging.debug('Setting bInsert to True')
-              seen.add(msgID)
-           #for val in seen:
-           #   logging('Seen element = %s' % (val))
-            
-        qso_timestamp = data.get('timestamp')
-        mycall = data.get('mycall')
-        band = data.get('band')
-        mode = data.get('mode')
-        operator = data.get('operator')
-        station_name = data.get('StationName')
-        if station_name is None or station_name == '':
-            station_name = data.get('NetBiosName')
-        station = station_name
-        rx_freq = int(data.get('rxfreq')) * 10  # convert to Hz
-        tx_freq = int(data.get('txfreq')) * 10
-        callsign = data.get('call')
-        rst_sent = data.get('snt')
-        rst_recv = data.get('rcv')
-        exchange = data.get('exchange1')
-        section = data.get('section')
-        comment = data.get('comment') or ''
-        
-
-        # convert qso_timestamp to datetime object
-        timestamp = convert_timestamp(qso_timestamp)
-        if bInsert:
-           logging.debug('Inserting record %s %s %s %s' % (callsign, exchange, section, msgID))
-           dataaccess.record_contact(db, cursor, operators, stations,
-                                  timestamp, mycall, band, mode, operator, station,
-                                  rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                                  exchange, section, comment, msgID)
-        else:
-           logging.debug('Updating record %s %s %s %s' % (callsign, exchange, section, msgID))
-           dataaccess.update_contact(db, cursor, operators, stations,
-                                    timestamp, mycall, band, mode, operator, station,
-                                    rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                                    exchange, section, comment, msgID) 
-        bInsert = False  
+        dataaccess.record_contact_combined(db, cursor, operators, stations,
+                                           timestamp, mycall, band, mode, operator, station,
+                                           rx_freq, tx_freq, callsign, rst_sent, rst_recv,
+                                           exchange, section, comment, msgID)
     elif message_type == 'RadioInfo':
         logging.debug('Received radioInfo message')
     elif message_type == 'contactdelete':
-        logging.debug('Skipping contactdelete message')
-        return
         msgID = data.get('ID') or '';
+        
+        # If no ID tag from N1MM, generate a hash for uniqueness
         if len(msgID) == 0:
-           logging.info('Delete QSO Request without ID')
-           qso_timestamp = data.get('timestamp')
-           callsign = data.get('call')
-           station_name = data.get('StationName')
-           station = station_name
-        #  convert qso_timestamp to datetime object
-           timestamp = convert_timestamp(qso_timestamp)
-           dataaccess.delete_contact(db, cursor, timestamp, station, callsign)
-           checksum_value = checksum(data)
-           seen.discard(checksum_value)
+           msgID = checksum(data)
         else:
            msgID = msgID.replace('-','')
-           logging.info('Delete QSO Request with ID %s' % (msgID))
-           dataaccess.delete_contact_by_msgID(db, cursor, msgID)
-           logging.debug('Removing %s from seen' % (msgID))
-           seen.discard(msgID)
+        
+        logging.info('Delete QSO Request with ID %s' % (msgID))
+        dataaccess.delete_contact_by_msgID(db, cursor, msgID)
+        
     elif message_type == 'dynamicresults':
         logging.debug('Received Score message')
     else:
