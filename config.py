@@ -52,3 +52,7 @@ HEADLESS = False
 # This should match the directory above we want to send from the directory to which we write.
 POST_FILE_COMMAND = 'rsync -avz /mnt/ramdisk/n1mm_view/html/* sparc:www/n1mm_view/html'
 
+""" Font Sizes """
+# If font seems too big, try 60 for VIEW_FONT and 100 for BIGGER_FONT
+VIEW_FONT = 64
+BIGGER_FONT = 180
