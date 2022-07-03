@@ -169,13 +169,13 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
     message_type = data.get('__messagetype__') or ''
     logging.debug('Received UDP message %s' % (message_type))
     if message_type == 'contactinfo' or message_type == 'contactreplace':
-        msgID = data.get('ID') or '';
+        qso_id = data.get('ID') or '';
         
         # If no ID tag from N1MM, generate a hash for uniqueness
-        if len(msgID) == 0:
-           msgID = checksum(data)
+        if len(qso_id) == 0:
+           qso_id = checksum(data)
         else:
-           msgID = msgID.replace('-','')
+           qso_id = qso_id.replace('-','')
             
         qso_timestamp = data.get('timestamp')
         mycall = data.get('mycall')
@@ -202,20 +202,20 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
         dataaccess.record_contact_combined(db, cursor, operators, stations,
                                            timestamp, mycall, band, mode, operator, station,
                                            rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                                           exchange, section, comment, msgID)
+                                           exchange, section, comment, qso_id)
     elif message_type == 'RadioInfo':
         logging.debug('Received radioInfo message')
     elif message_type == 'contactdelete':
-        msgID = data.get('ID') or '';
+        qso_id = data.get('ID') or '';
         
         # If no ID tag from N1MM, generate a hash for uniqueness
-        if len(msgID) == 0:
-           msgID = checksum(data)
+        if len(qso_id) == 0:
+           qso_id = checksum(data)
         else:
-           msgID = msgID.replace('-','')
+           qso_id = qso_id.replace('-','')
         
-        logging.info('Delete QSO Request with ID %s' % (msgID))
-        dataaccess.delete_contact_by_msgID(db, cursor, msgID)
+        logging.info('Delete QSO Request with ID %s' % (qso_id))
+        dataaccess.delete_contact_by_qso_id(db, cursor, qso_id)
         
     elif message_type == 'dynamicresults':
         logging.debug('Received Score message')
