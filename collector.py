@@ -147,7 +147,7 @@ def checksum(data):
     generate a unique ID for each QSO.
     this is using md5 rather than crc32 because it is hoped that md5 will have less collisions.
     """
-    hval = data['timestamp'] + data['rxfreq'] + data['txfreq'] + data['operator'] + data['mode'] + data['call']
+    hval = data['timestamp'] + data['StationName'] + data['contestnr'] + data['call']
     return int(hashlib.md5(hval.encode()).hexdigest(), 16)
 
 
@@ -162,16 +162,21 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
     """
     Process a N1MM+ contactinfo message
     """
+    bInsert = False
     message = compress_message(message)
-    #  logging.debug(message)
+    #logging.debug(message)
     data = parser.parse(message)
     message_type = data.get('__messagetype__') or ''
+    logging.debug('Received UDP message %s' % (message_type))
     if message_type == 'contactinfo' or message_type == 'contactreplace':
-        checksum_value = checksum(data)
-        if checksum_value in seen:
-            logging.debug('duplicate message')
-            return
-        seen.add(checksum_value)
+        qso_id = data.get('ID') or '';
+        
+        # If no ID tag from N1MM, generate a hash for uniqueness
+        if len(qso_id) == 0:
+           qso_id = checksum(data)
+        else:
+           qso_id = qso_id.replace('-','')
+            
         qso_timestamp = data.get('timestamp')
         mycall = data.get('mycall')
         band = data.get('band')
@@ -189,24 +194,29 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
         exchange = data.get('exchange1')
         section = data.get('section')
         comment = data.get('comment') or ''
+        
 
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
 
-        dataaccess.record_contact(db, cursor, operators, stations,
-                                  timestamp, mycall, band, mode, operator, station,
-                                  rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                                  exchange, section, comment)
+        dataaccess.record_contact_combined(db, cursor, operators, stations,
+                                           timestamp, mycall, band, mode, operator, station,
+                                           rx_freq, tx_freq, callsign, rst_sent, rst_recv,
+                                           exchange, section, comment, qso_id)
     elif message_type == 'RadioInfo':
         logging.debug('Received radioInfo message')
     elif message_type == 'contactdelete':
-        qso_timestamp = data.get('timestamp')
-        callsign = data.get('call')
-        station_name = data.get('StationName')
-        station = station_name
-        #  convert qso_timestamp to datetime object
-        timestamp = convert_timestamp(qso_timestamp)
-        dataaccess.delete_contact(db, cursor, timestamp, station, callsign)
+        qso_id = data.get('ID') or '';
+        
+        # If no ID tag from N1MM, generate a hash for uniqueness
+        if len(qso_id) == 0:
+           qso_id = checksum(data)
+        else:
+           qso_id = qso_id.replace('-','')
+        
+        logging.info('Delete QSO Request with ID %s' % (qso_id))
+        dataaccess.delete_contact_by_qso_id(db, cursor, qso_id)
+        
     elif message_type == 'dynamicresults':
         logging.debug('Received Score message')
     else:

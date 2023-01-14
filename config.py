@@ -40,7 +40,7 @@ Too high makes a lag in viewing your results.
 """
 DATA_DWELL_TIME = 60
 """ log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
-LOG_LEVEL = logging.WARN
+LOG_LEVEL = logging.DEBUG
 #
 """images directory, or None if not writing image files"""
 IMAGE_DIR = '/mnt/ramdisk/n1mm_view/html'
