@@ -11,12 +11,14 @@ Make sure your download the version for the same architecture as your python
 installation (32- vs. 64-bit.)
 """
 
+import datetime
 import os
 import socket
 import sqlite3
 import sys
 import time
 
+import config
 from config import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
@@ -24,6 +26,13 @@ __copyright__ = 'Copyright 2016, 2017, 2019, 2021 Jeffrey B. Otterson and n1mm_v
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
+
+"""
+FACTOR is the speed-up factor for replaying, because I don't have a whole day to 
+load a day-long contest's data.  Set this to 10 for a 10X speedup.  Set to 60 to make 
+minutes take seconds.  set to 60, an day long contest should take about 24 minutes to replay. 
+"""
+FACTOR = 60
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.DEBUG)
@@ -72,6 +81,7 @@ TEMPLATE = '''<?xml version="1.0"?>
             <IsOriginal>True</IsOriginal>
             <NetBiosName>%s</NetBiosName>
             <IsRunQSO>0</IsRunQSO>
+            <ID>%s</ID>
     </contactinfo>'''
 
 
@@ -105,23 +115,37 @@ def main():
 
         cursor.execute('SELECT TS, band, Freq, QSXFreq, Operator, Mode, Call, CountryPrefix, WPXPrefix, \n'
                        'StationPrefix, Continent,  SNT, SentNr, RCV, NR, GridSquare, Exchange1, Sect, ZN, Points, \n'
-                       'NetBiosName \n'
-                       'FROM DXLOG order by TS;')
+                       'NetBiosName, ID \n'
+                       'FROM DXLOG WHERE ContestName = "FD" AND ContestNR > 0 order by TS;')
         qso_number = 0
+        last_tm = 0
+        delay = 0.050
         for row in cursor:
             ts = row[0]
-            band = convert_band(row[1])
-            rx_freq = row[2] * 100
-            tx_freq = row[3] * 100
-            values = (ts, band, rx_freq, tx_freq, row[4], row[5], row[6], row[7],
-                      row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15],
-                      row[16], row[17], row[18], row[19], row[20])
-            payload = TEMPLATE % values
+            qso_time = datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+            if True:
+                #if config.EVENT_START_TIME <= qso_time <= config.EVENT_END_TIME:
+                tm = qso_time.timestamp()
+                band = convert_band(row[1])
+                rx_freq = row[2] * 100
+                tx_freq = row[3] * 100
+                values = (ts, band, rx_freq, tx_freq, row[4], row[5], row[6], row[7],
+                          row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15],
+                          row[16], row[17], row[18], row[19], row[20], row[21])
+                payload = TEMPLATE % values
+                #print(payload)
+                if last_tm != 0:
+                    ds = min(3600, int(tm - last_tm))  # set max delta to one hour
+                    delay = round(max(ds / FACTOR, 0.050), 2)  # set min delay to 0.050 sec
+                    # print(ts, tm, ds, delay)
+                    time.sleep(delay)
 
-            s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
-            qso_number += 1
-            logging.info("sent qso # %d timestamp %s" % (qso_number, ts))
-            time.sleep(0.050)  # 50 milliseconds pacing.
+                last_tm = tm
+                s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
+                qso_number += 1
+                logging.info('sent qso # {} timestamp {}'.format(qso_number, ts))
+            else:
+                logging.info('ignoring qso with timestamp {}'.format(ts))
 
     logging.info('replayer done...')
 
