@@ -91,7 +91,8 @@ def load_data(size, q, last_qso_timestamp):
             # load QSO rates per Hour by Band
             qsos_per_hour, qsos_per_band = dataaccess.get_qsos_per_hour_per_band(cursor)
 
-        # load QSOs by Section # This has to be done even if no new QSO to advance gray line and since the map is always drawn.
+        # load QSOs by Section
+        # This has to be done even if no new QSO to advance gray line and since the map is always drawn.
         qsos_by_section = dataaccess.get_qsos_by_section(cursor)
 
         q.put((CRAWL_MESSAGE, 0, ''))
@@ -360,15 +361,15 @@ def main():
                     if event.key == ord('q'):
                         logging.debug('Q key pressed')
                         run = False
-                    elif event.key == ord('n') or event.key == 275:
+                    elif event.key == pygame.K_n or event.key == 275 or event.key == pygame.K_RIGHT:
                         logging.debug('next key pressed')
                         image_index = change_image(screen, size, images, image_index, 1)
                         display_update_timer = config.DISPLAY_DWELL_TIME
-                    elif event.key == ord('p') or event.key == 276:
+                    elif event.key == pygame.K_p or event.key == 276 or event.key == pygame.K_LEFT:
                         logging.debug('prev key pressed')
                         image_index = change_image(screen, size, images, image_index, -1)
                         display_update_timer = config.DISPLAY_DWELL_TIME
-                    elif event.key == 302:
+                    elif event.key == 302 or event.key == pygame.K_SCROLLLOCK:
                         logging.debug('scroll lock key pressed')
                         if paused:
                             image_index = change_image(screen, size, images, image_index, 1)
