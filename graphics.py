@@ -177,6 +177,23 @@ def qso_operators_table(size, qso_operators):
     else:
         return draw_table(size, cells, "Top 5 Operators", bigger_font)
 
+def qso_operators_table_all(size, qso_operators):
+    """
+    create the QSOs by All Operators table
+    """
+    if len(qso_operators) == 0:
+        return None, (0, 0)
+
+    count = 0
+    cells = [['Operator', 'QSOs']]
+    for d in qso_operators:
+        cells.append(['%s' % d[0], '%5d' % d[1]])
+        count += 1
+
+    if count == 0:
+        return None, (0, 0)
+    else:
+        return draw_table(size, cells, "QSOs by All Operators", bigger_font)
 
 def qso_stations_graph(size, qso_stations):
     """
