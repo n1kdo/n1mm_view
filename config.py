@@ -26,7 +26,7 @@ This could be the IP of the N1MM master, or just the last address in the network
 N1MM_BROADCAST_ADDRESS = '192.168.1.255'
 """ n1mm+ log file name used by replayer """
 # N1MM_LOG_FILE_NAME = 'MyClubCall-2019.s3db'
-N1MM_LOG_FILE_NAME = 'MyClubCall-2020.s3db'
+N1MM_LOG_FILE_NAME = 'fd2022-n4n-n1kdo.s3db'
 """ QTH here is the location of your event. We mark this location with a red dot when we generate the map views."""
 """ QTH Latitude """
 QTH_LATITUDE = 34.0109629
@@ -40,7 +40,7 @@ Too high makes a lag in viewing your results.
 """
 DATA_DWELL_TIME = 60
 """ log level for apps -- one of logging.WARN, logging.INFO, logging.DEBUG """
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 #
 """images directory, or None if not writing image files"""
 IMAGE_DIR = '/mnt/ramdisk/n1mm_view/html'

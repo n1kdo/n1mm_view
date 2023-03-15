@@ -87,7 +87,8 @@ CONTEST_SECTIONS = {
     'EPA': 'Eastern Pennsylvania',
     'EWA': 'Eastern Washington',
     'GA': 'Georgia',
-    'GTA': 'Greater Toronto Area',
+    'GS': 'Golden Horseshoe',
+    # 'GTA': 'Greater Toronto Area',  # renamed GS 2023-03-15
     'IA': 'Iowa',
     'ID': 'Idaho',
     'IL': 'Illinois',
@@ -96,7 +97,7 @@ CONTEST_SECTIONS = {
     'KY': 'Kentucky',
     'LA': 'Louisiana',
     'LAX': 'Los Angeles',
-    # 'MAR': 'Maritime',  # OBSOLETE 2023-01-01
+    # 'MAR': 'Maritime',  # OBSOLETE 2023-01-01, replaced with NB and NS
     'MB': 'Manitoba',
     'MDC': 'Maryland - DC',
     'ME': 'Maine',
@@ -117,7 +118,7 @@ CONTEST_SECTIONS = {
     'NNJ': 'Northern New Jersey',
     'NNY': 'Northern New York',
     'NS': 'Nova Scotia',
-    'NT': 'Northern Territories',
+    # 'NT': 'Northern Territories',  # renamed TER 2023-03-15
     'NTX': 'North Texas',
     'NV': 'Nevada',
     'OH': 'Ohio',
@@ -144,6 +145,7 @@ CONTEST_SECTIONS = {
     'SNJ': 'Southern New Jersey',
     'STX': 'South Texas',
     'SV': 'Sacramento Valley',
+    'TER': 'Northern Territories',
     'TN': 'Tennessee',
     'UT': 'Utah',
     'VA': 'Virginia',

@@ -296,5 +296,5 @@ def get_qsos_by_section(cursor):
     cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section;')
     for row in cursor:
         qsos_by_section[row[0]] = row[1]
-        logging.debug('Section %s',row[0])
+        logging.debug(f'[dataaccess] Section {row[0]} {row[1]}')
     return qsos_by_section
