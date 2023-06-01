@@ -3,6 +3,7 @@
 #
 import calendar
 import os
+from pprint import pprint
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -507,7 +508,7 @@ def draw_map(size, qsos_by_section):
     ax.set_extent([-168, -52, 10, 60], ccrs.Geodetic())
     ax.add_feature(cfeature.OCEAN, color='#000080')
     ax.add_feature(cfeature.LAKES, color='#000080')
-    ax.add_feature(cfeature.LAND, color='#113311')
+    ax.add_feature(cfeature.LAND, color='#333333') #old: 113311
 
     ax.coastlines('50m')
     ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
@@ -515,9 +516,38 @@ def draw_map(size, qsos_by_section):
     
     ax.text(0.83, 0,datetime.datetime.utcnow().strftime("%d %b %Y %H:%M %Zz"),
                transform = ax.transAxes,style='italic', size=14,color='white')
-    ranges = [0, 1, 2, 10, 20, 50, 100]  # , 500]  # , 1000]
+
+    # Hardcoded ranges and colors
+    #
+    # Given a range of [0,1,4,9], sections with counts of 2-4 fall into the 3rd position (ie, ranges[2])
+    # and then would use the color in the same position.
+    # Make sure the highest count for a section is not > the last number in Ranges.
+
+    # Ranges for a Field Day where the highest count per section is just over 29.
+    # rng pos:  0  1  2  3  4  5  6   7   8   9
+    # ranges = [0, 1, 2, 3, 4, 5, 10, 20, 50, 100]  # , 500]  # , 1000]
+    ranges = [0, 1, 4, 9, 19, 29, 500]
+
     num_colors = len(ranges)
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
+
+    # color pos:   0          1          2          3          4          5          6          7          8
+    # Green palette: 6 levels
+    # colors:      black      lt green   sage       olive      lime       forest     evergreen
+    # mycolors = ['#000000', '#bdffa4', '#90cc74', '#6ab155', '#2e7b1f', '#005600', '#003100']
+
+    # Yellow to Red color palette: 8 levels
+    # colors:      black      dusty yel  lt yellow  yellow     mustard    apricot    orange     red        maroon
+    # mycolors = ['#000000', '#fcfe7f', '#f0fe51', '#fef001', '#ffce03', '#fd9a01', '#fd5904', '#f00505', '#7c0a01']
+
+    # Yellow to Red color palette: 7 levels
+    # colors:      black      lt yellow  yellow     mustard    apricot    orange     red        maroon
+    # mycolors = ['#000000', '#f0fe51', '#fef001', '#ffce03', '#fd9a01', '#fd5904', '#f00505', '#7c0a01']
+
+    # Yellow to Red color palette: 6 levels
+    #              black      lt yel     yellow     gold       orange     red        maroon
+    mycolors = ['#000000', '#fcfe7f', '#fff135', '#fdae1c', '#fd5904', '#e00505', '#7c0a01']
+
 
     for section_name in CONTEST_SECTIONS.keys():
         qsos = qsos_by_section.get(section_name)
@@ -540,7 +570,45 @@ def draw_map(size, qsos_by_section):
             if shape is None:
                 break
             shape.attributes['name'] = section_name
-            section_color = 'k' if color_index == 0 else color_palette[color_index]
+
+            # section_color = 'k' if color_index == 0 else color_palette[color_index]
+
+            # override section color for testing colors
+            """
+            if section_name == "ND":
+                color_index = 1
+            if section_name == "MN":
+                color_index = 1
+            if section_name == "WY":
+                color_index = 2
+            if section_name == "SD":
+                color_index = 2
+            if section_name == "MT":
+                color_index = 3
+            if section_name == "ID":
+                color_index = 4
+            if section_name == "EWA":
+                color_index = 5
+            if section_name == "OR":
+                color_index = 5
+            if section_name == "NV":
+                color_index = 6
+            if section_name == "UT":
+                color_index = 7
+            if section_name == "CO":
+                color_index = 8
+            if section_name == "NE":
+                color_index = 9
+            if section_name == "IA":
+                color_index = 10
+            if section_name == "WI":
+                color_index = 11
+            if color_index >= len(mycolors):
+                color_index = len(mycolors) - 1
+            """
+
+            section_color = mycolors[color_index]
+
             ax.add_geometries([shape.geometry], projection, linewidth=0.7, edgecolor="w", facecolor=section_color)
 
     # show terminator
