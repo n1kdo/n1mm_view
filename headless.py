@@ -125,6 +125,8 @@ def create_images(size, image_dir, last_qso_timestamp):
             image_data, image_size = graphics.qso_operators_table_all(size, qso_operators)
             filename = makePNGTitle(image_dir, 'qso_operators_table_all')
             graphics.save_image(image_data, image_size, filename)
+        except Exception as e:
+            logging.exception(e)  
         try:
             image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
             filename = makePNGTitle(image_dir, 'qso_stations_graph')
