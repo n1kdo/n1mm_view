@@ -12,7 +12,7 @@ fi
 
 apt-get update
 apt-get -y upgrade
-apt-get -y install python-dev python-pygame apache2
+apt-get -y install python-dev python3-pygame apache2
 apt-get install -y git python3-dev python3-pygame python3-matplotlib python3-cartopy python3-pykdtree python3-scipy
 
 # ramdisk and Apache
