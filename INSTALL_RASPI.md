@@ -11,8 +11,9 @@ This moves into the N1MM_view project directory
 * `pip install numpy`
 make sure library for higher math computations is available
 * `chmod +x rpi_install.sh`
+* If you are not running with the default 'pi' user, then modify the file `init/ramdisk-sync.service` and replace instances of `pi` with your username.
 * `sudo ./rpi_install.sh` 
-Installs the remaining libraries and prerequisites. also gets all current updates for Raspbian.) This also handles everything in the Configure_Apache document. If you will not use the webserver option, you can simply stop the apache daemon (`sudo apachectl stop`)
+Installs the remaining libraries and prerequisites (also gets all current updates for Raspbian). This also handles everything in the Configure_Apache document. If you will not use the webserver option, you can simply stop the apache daemon (`sudo apachectl stop`).
 This last command will run for quite some time. 
 The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+ (18 minutes on a Pi 4B). We gave it a lot of things to do so you won't need to do them.
 While you are waiting, you could create a splash screen for your event: a 1000x1000 portable network graphics (.png) image in RGB format works great.   
