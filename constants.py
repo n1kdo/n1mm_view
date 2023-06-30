@@ -14,6 +14,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s'
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
+
 class Bands:
     """
     this is all the bands that are supported.
@@ -87,8 +88,8 @@ CONTEST_SECTIONS = {
     'EPA': 'Eastern Pennsylvania',
     'EWA': 'Eastern Washington',
     'GA': 'Georgia',
-    'GS': 'Golden Horseshoe',
-    # 'GTA': 'Greater Toronto Area',  # renamed GS 2023-03-15
+    'GH': 'Golden Horseshoe',
+    # 'GTA': 'Greater Toronto Area',  # renamed GH 2023-03-15
     'IA': 'Iowa',
     'ID': 'Idaho',
     'IL': 'Illinois',

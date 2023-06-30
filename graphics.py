@@ -513,8 +513,8 @@ def draw_map(size, qsos_by_section):
     ax.annotate('Sections Worked', xy=(0.5, 1), xycoords='axes fraction', ha='center', va='top',
                 color='white', size=48, weight='bold')
     
-    ax.text(0.83, 0,datetime.datetime.utcnow().strftime("%d %b %Y %H:%M %Zz"),
-               transform = ax.transAxes,style='italic', size=14,color='white')
+    ax.text(0.83, 0, datetime.datetime.utcnow().strftime("%d %b %Y %H:%M %Zz"),
+            transform=ax.transAxes, style='italic', size=14, color='white')
     ranges = [0, 1, 2, 10, 20, 50, 100]  # , 500]  # , 1000]
     num_colors = len(ranges)
     color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
