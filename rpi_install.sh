@@ -1,7 +1,8 @@
+#!/bin/env bash
 # git clone https://github.com/n1kdo/n1mm_view.git
 # cd n1mm_view
 # pip install numpy
-if [[ $EUID -ne 0 ]]; then
+if [ $EUID -ne 0 ]; then
    echo "This part of setup needs full system access."
    echo "You can simply type: "
    echo "    sudo !!"
@@ -18,7 +19,7 @@ apt-get install -y git python3-dev python3-pygame python3-matplotlib python3-car
 mkdir -p /mnt/ramdisk
 mkdir -p /mnt/ramdisk_backup
 mount -t tmpfs -o rw,size=2G tmpfs /mnt/ramdisk
-if [[ $(grep -q "/mnt/ramdisk" "/etc/fstab") ]]
+if [ $(grep -q "/mnt/ramdisk" "/etc/fstab") ]
 then
     echo "tmpfs /mnt/ramdisk  tmpfs rw,size=2G  0 0" >> /etc/fstab
 else
