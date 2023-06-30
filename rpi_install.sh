@@ -30,7 +30,7 @@ mount -a
 # persist ramdisk contents 
 cp ./init/*.service /lib/systemd/system/.
 systemctl enable ramdisk-sync.service
-systemctl start ramdisk_sync
+systemctl start ramdisk-sync
 
 # Change HTML_DIR in n1mm_view_config.py to /var/ram/n1mm_view/html (or something similar).
 mkdir -p /mnt/ramdisk/n1mm_view/html 
