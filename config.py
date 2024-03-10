@@ -12,11 +12,13 @@ EVENT_NAME = 'Field Day'
 """ start time of the event/contest in YYYY-MM-DD hh:mm:ss format """
 # EVENT_START_TIME = datetime.datetime.strptime('2019-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
 # EVENT_START_TIME = datetime.datetime.strptime('2021-06-26 18:00:00', '%Y-%m-%d %H:%M:%S')
-EVENT_START_TIME = datetime.datetime.strptime('2022-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
+# EVENT_START_TIME = datetime.datetime.strptime('2022-06-25 18:00:00', '%Y-%m-%d %H:%M:%S')
+EVENT_START_TIME = datetime.datetime.strptime('2024-06-23 18:00:00', '%Y-%m-%d %H:%M:%S')
 """ end time of the event/contest """
 # EVENT_END_TIME = datetime.datetime.strptime('2019-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
 # EVENT_END_TIME = datetime.datetime.strptime('2021-06-27 17:59:59', '%Y-%m-%d %H:%M:%S')
-EVENT_END_TIME = datetime.datetime.strptime('2022-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
+# EVENT_END_TIME = datetime.datetime.strptime('2022-06-26 17:59:59', '%Y-%m-%d %H:%M:%S')
+EVENT_END_TIME = datetime.datetime.strptime('2024-06-24 17:59:59', '%Y-%m-%d %H:%M:%S')
 """ port number used by N1MM+ for UDP broadcasts This matches the port you set in N1MM Configurator UDP logging """
 N1MM_BROADCAST_PORT = 12060
 """ 
@@ -26,7 +28,7 @@ This could be the IP of the N1MM master, or just the last address in the network
 N1MM_BROADCAST_ADDRESS = '192.168.1.255'
 """ n1mm+ log file name used by replayer """
 # N1MM_LOG_FILE_NAME = 'MyClubCall-2019.s3db'
-N1MM_LOG_FILE_NAME = 'fd2022-n4n-n1kdo.s3db'
+N1MM_LOG_FILE_NAME = 'fd2024.s3db'
 """ QTH here is the location of your event. We mark this location with a red dot when we generate the map views."""
 """ QTH Latitude """
 QTH_LATITUDE = 34.0109629
