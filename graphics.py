@@ -2,6 +2,7 @@
 #
 #
 import calendar
+import logging
 import os
 
 import cartopy.crs as ccrs
@@ -20,7 +21,7 @@ from config import *
 from constants import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2019, 2021 Jeffrey B. Otterson and n1mm_view maintainers'
+__copyright__ = 'Copyright 2016, 2019, 2021, 2024 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
 RED = pygame.Color('#ff0000')
@@ -52,7 +53,8 @@ def init_display():
     # Check which frame buffer drivers are available
     # Start with fbcon since directfb hangs with composite output
     # x11 needed for Raspbian Stretch.  Put fbcon before directfb to not hang composite output
-    drivers = ['x11', 'fbcon', 'directfb', 'ggi', 'svgalib', 'directx', 'windib']
+    drivers = ['x11', 'dga', 'fbcon', 'directfb', 'svgalib', 'ggi', 'wayland', 'kmsdrm', 'aalib', 'directx', 'windib',
+               'windows']
     found = False
     driver = None
     for driver in drivers:
@@ -61,11 +63,12 @@ def init_display():
             os.putenv('SDL_VIDEODRIVER', driver)
         try:
             pygame.display.init()
-        except pygame.error:
-            #  logging.warn('Driver: %s failed.' % driver)
+        except pygame.error as ex:
+            logging.warning(f'pygame error {ex}')
+            logging.warning('Driver: %s failed.' % driver)
             continue
         found = True
-        logging.debug('using %s driver', driver)
+        logging.info('using %s driver', driver)
         break
 
     if not found or driver is None:
