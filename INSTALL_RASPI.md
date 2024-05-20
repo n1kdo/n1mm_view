@@ -8,7 +8,7 @@
 this downloads the latest copy of n1mm_view to your pi
 * `cd n1mm_view`
 This moves into the N1MM_view project directory
-* `pip install numpy`
+* `pip install numpy` `sudo apt install python3-numpy`
 make sure library for higher math computations is available
 * `chmod +x rpi_install.sh`
 * If you are not running with the default 'pi' user, then modify the file `init/ramdisk-sync.service` and replace instances of `pi` with your username.
