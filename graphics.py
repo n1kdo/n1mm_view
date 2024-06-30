@@ -12,6 +12,7 @@ import cartopy.io.shapereader as shapereader
 import matplotlib
 import matplotlib.backends.backend_agg as agg
 import matplotlib.cm
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pygame
@@ -64,11 +65,11 @@ def init_display():
         try:
             pygame.display.init()
         except pygame.error as ex:
-            logging.warning(f'pygame error {ex}')
-            logging.warning('Driver: %s failed.' % driver)
+            logging.debug(f'pygame error {ex}')
+            logging.debug('Driver: %s failed.' % driver)
             continue
         found = True
-        logging.info('using %s driver', driver)
+        logging.info(f'Discovered compatible driver {driver}')
         break
 
     if not found or driver is None:
@@ -85,9 +86,7 @@ def init_display():
         # size = (size[0]-10, size[1] - 30)
         screen = pygame.display.set_mode(size, pygame.NOFRAME)
 
-    logging.debug('display size: %d x %d', size[0], size[1])
-    # Clear the screen to start
-    screen.fill(BLACK)
+    logging.info('display size: %d x %d', size[0], size[1])
     return screen, size
 
 
@@ -105,9 +104,8 @@ def show_graph(screen, size, surf):
 
 def save_image(image_data, image_size, filename):
     surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
-    logging.info('Saving file to %s', filename)       
+    logging.debug('Saving file to %s', filename)
     pygame.image.save(surface, filename)
-    pass
 
 
 def make_pie(size, values, labels, title):
@@ -117,15 +115,21 @@ def make_pie(size, values, labels, title):
     make the pie chart a square that is as tall as the display.
     """
     logging.debug('make_pie(...,...,%s)', title)
-    inches = size[1] / 100.0
-    fig = plt.figure(figsize=(inches, inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='k')
+    new_labels = []
+    for i in range(0, len(labels)):
+        new_labels.append(f'{labels[i]} ({values[i]})')
+
+    width_inches = size[0] / 100.0
+    height_inches = size[1] / 100.0
+    fig = plt.figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10, }, facecolor='k')
     ax = fig.add_subplot(111)
-    ax.pie(values, labels=labels, autopct='%1.1f%%', textprops={'color': 'w'}, wedgeprops={'linewidth': 0.25},
-           colors=('b', 'g', 'r', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300'))
+    ax.pie(values, labels=new_labels, autopct='%1.1f%%', textprops={'color': 'w', 'fontsize': 14},
+           wedgeprops={'linewidth': 0.25}, colors=mcolors.TABLEAU_COLORS)
     ax.set_title(title, color='white', size=48, weight='bold')
 
     handles, labels = ax.get_legend_handles_labels()
-    legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='lower left')  # best
+    # legend = ax.legend(handles[0:5], labels[0:5], title='Top %s' % title, loc='upper right', prop={'size': 14})
+    legend = ax.legend(handles[0:5], labels[0:5], loc='upper right', prop={'size': 14})  # best
     frame = legend.get_frame()
     frame.set_color((0, 0, 0, 0.75))
     frame.set_edgecolor('w')
@@ -136,11 +140,11 @@ def make_pie(size, values, labels, title):
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
+    canvas_size = canvas.get_width_height()
     raw_data = renderer.tostring_rgb()
 
     plt.close(fig)
 
-    canvas_size = canvas.get_width_height()
     logging.debug('make_pie(...,...,%s) done', title)
     return raw_data, canvas_size
 
@@ -158,6 +162,49 @@ def qso_operators_graph(size, qso_operators):
         labels.append(d[0])
         values.append(d[1])
     return make_pie(size, values, labels, "QSOs by Operator")
+
+
+def qso_classes_graph(size, qso_classes):
+    """
+    create the QSOs by Operators pie chart
+    """
+    # calculate QSO by class
+    if qso_classes is None or len(qso_classes) == 0:
+        return None, (0, 0)
+    qso_classes = sorted(qso_classes, key=lambda x: x[0])
+
+    total = 0
+    for qso_class in qso_classes:
+        total += qso_class[0]
+
+    summarize = 0
+    threshold = 2.0
+    for qso_class in qso_classes:
+        pct = qso_class[0] / total * 100.0
+        if pct < threshold:
+            summarize = qso_class[0]
+        else:
+            break
+
+    grouped_qso_classes = []
+    summarized_names = []
+    summarized_values = 0
+
+    for d in qso_classes:
+        if d[0] <= summarize:
+            summarized_names.append(d[1])
+            summarized_values += d[0]
+        else:
+            grouped_qso_classes.append(d)
+    grouped_qso_classes = sorted(grouped_qso_classes, key=lambda x: x[0], reverse=True)
+    grouped_qso_classes.append((summarized_values, f'{len(summarized_names)} others'))
+
+    labels = []
+    values = []
+    for d in grouped_qso_classes:
+        labels.append(d[1])
+        values.append(d[0])
+    return make_pie(size, values, labels, "QSOs by Class")
 
 
 def qso_operators_table(size, qso_operators):
@@ -180,6 +227,7 @@ def qso_operators_table(size, qso_operators):
     else:
         return draw_table(size, cells, "Top 5 Operators", bigger_font)
 
+
 def qso_operators_table_all(size, qso_operators):
     """
     create the QSOs by All Operators table
@@ -197,6 +245,7 @@ def qso_operators_table_all(size, qso_operators):
         return None, (0, 0)
     else:
         return draw_table(size, cells, "QSOs by All Operators", bigger_font)
+
 
 def qso_stations_graph(size, qso_stations):
     """
@@ -319,7 +368,7 @@ def qso_rates_table(size, operator_qso_rates):
         return draw_table(size, operator_qso_rates, "QSO/Hour Rates")
 
 
-def qso_rates_chart(size, qsos_per_hour):
+def qso_rates_graph(size, qsos_per_hour):
     """
     make the qsos per hour per band chart
     returns a pygame surface
@@ -354,7 +403,6 @@ def qso_rates_chart(size, qsos_per_hour):
     lt = calendar.timegm(qsos_per_hour[-1][0].timetuple())
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
-        colors = ['r', 'g', 'b', 'c', 'm', 'y', '#ff9900', '#00ff00', '#663300']
         labels = Bands.BANDS_TITLE[1:]
         if lt < st:
             start_date = dates[0]  # matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
@@ -365,7 +413,8 @@ def qso_rates_chart(size, qsos_per_hour):
         ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
-                     qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=colors, linewidth=0.2)
+                     qso_counts[7], qso_counts[8], qso_counts[9], labels=labels, colors=mcolors.TABLEAU_COLORS,
+                     linewidth=0.2)
         ax.grid(True)
         legend = ax.legend(loc='best', ncol=Bands.count() - 1)
         legend.get_frame().set_color((0, 0, 0, 0))

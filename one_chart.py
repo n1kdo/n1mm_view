@@ -3,7 +3,7 @@
 """
 This script allows you to view ONE of the graphs relatively quickly, mostly for debugging the graph generators.
 """
-
+import gc
 import logging
 import pygame
 import sqlite3
@@ -69,6 +69,9 @@ def main():
         # load QSO rates per Hour by Band
         qsos_per_hour, qsos_per_band = dataaccess.get_qsos_per_hour_per_band(cursor)
 
+        # load qso exchange data: what class are the other stations?
+        qso_classes = dataaccess.get_qso_classes(cursor)
+
         # load QSOs by Section
         qsos_by_section = dataaccess.get_qsos_by_section(cursor)
 
@@ -84,18 +87,29 @@ def main():
             db = None
 
     try:
-        # image_data, image_size = graphics.qso_summary_table(size, qso_band_modes)
-        # image_data, image_size = graphics.qso_rates_table(size, operator_qso_rates)
-        # image_data, image_size = graphics.qso_operators_graph(size, qso_operators)
-        # image_data, image_size = graphics.qso_operators_table(size, qso_operators)
-        # image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
-        # image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
-        # image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
-        # image_data, image_size = graphics.qso_rates_chart(size, qsos_per_hour)
+        image_data, image_size = graphics.qso_summary_table(size, qso_band_modes)
+        graphics.save_image(image_data, image_size, 'images/qso_summary_table.png')
+        image_data, image_size = graphics.qso_rates_table(size, operator_qso_rates)
+        graphics.save_image(image_data, image_size, 'images/qso_rates_table.png')
+        image_data, image_size = graphics.qso_operators_graph(size, qso_operators)
+        graphics.save_image(image_data, image_size, 'images/qso_operators_graph.png')
+        image_data, image_size = graphics.qso_operators_table(size, qso_operators)
+        graphics.save_image(image_data, image_size, 'images/qso_operators_table.png')
+        image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
+        graphics.save_image(image_data, image_size, 'images/qso_stations_graph.png')
+        image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
+        graphics.save_image(image_data, image_size, 'images/qso_bands_graph.png')
+        image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
+        image = pygame.image.frombuffer(image_data, image_size, 'RGB')  # this is the image to SHOW on the screen
+        graphics.save_image(image_data, image_size, 'images/qso_classes_graph.png')
+        image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
+        graphics.save_image(image_data, image_size, 'images/qso_modes_graph.png')
+        image_data, image_size = graphics.qso_rates_graph(size, qsos_per_hour)
+        graphics.save_image(image_data, image_size, 'images/qso_rates_graph.png')
         image_data, image_size = graphics.draw_map(size, qsos_by_section)
-        #  gc.collect()
+        graphics.save_image(image_data, image_size, 'images/qsos_map.png')
+        gc.collect()
 
-        image = pygame.image.frombuffer(image_data, image_size, 'RGB')
         graphics.show_graph(screen, size, image)
         pygame.display.flip()
 
