@@ -17,7 +17,7 @@ import config
 import dataaccess
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019, 2024 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -162,14 +162,12 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
     """
     Process a N1MM+ contactinfo message
     """
-    bInsert = False
     message = compress_message(message)
-    #logging.debug(message)
     data = parser.parse(message)
-    message_type = data.get('__messagetype__') or ''
-    logging.debug('Received UDP message %s' % (message_type))
-    if message_type == 'contactinfo' or message_type == 'contactreplace':
-        qso_id = data.get('ID') or '';
+    message_type = data.get('__messagetype__', '')
+    logging.debug(f'Received UDP message {message_type}')
+    if message_type in ['contactinfo', 'contactreplace']:
+        qso_id = data.get('ID', '')
         
         # If no ID tag from N1MM, generate a hash for uniqueness
         if len(qso_id) == 0:
@@ -182,7 +180,7 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
         band = data.get('band')
         mode = data.get('mode', '').upper()
         operator = data.get('operator', '').upper()
-        station_name = data.get('StationName', '')
+        station_name = data.get('StationName', '').upper()
         if station_name is None or station_name == '':
             station_name = data.get('NetBiosName', '')
         station = station_name.upper()
@@ -203,7 +201,7 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
                                            rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                                            exchange, section, comment, qso_id)
     elif message_type == 'RadioInfo':
-        logging.debug('Received radioInfo message')
+        logging.debug('Received RadioInfo message')
     elif message_type == 'contactdelete':
         qso_id = data.get('ID') or ''
         
@@ -211,15 +209,15 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
         if len(qso_id) == 0:
             qso_id = checksum(data)
         else:
-            qso_id = qso_id.replace('-','')
+            qso_id = qso_id.replace('-', '')
         
-        logging.info('Delete QSO Request with ID %s' % (qso_id))
+        logging.info(f'Delete QSO Request with ID {qso_id}')
         dataaccess.delete_contact_by_qso_id(db, cursor, qso_id)
         
     elif message_type == 'dynamicresults':
         logging.debug('Received Score message')
     else:
-        logging.warning('unknown message type {} received, ignoring.'.format(message_type))
+        logging.warning(f'unknown message type "{message_type}" received, ignoring.')
         logging.debug(message)
 
 
@@ -250,7 +248,7 @@ def message_processor(q, event):
         db.close()
         logging.info('db closed')
         run = False
-        logging.info('collector message_processor exited, {} messages collected.'.format(message_count))
+        logging.info(f'collector message_processor exited, {message_count} messages collected.')
 
 
 def main():
