@@ -14,7 +14,6 @@ import matplotlib.backends.backend_agg as agg
 import matplotlib.cm
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-import numpy as np
 import pygame
 from matplotlib.dates import HourLocator, DateFormatter
 
@@ -569,7 +568,10 @@ def draw_map(size, qsos_by_section):
             transform=ax.transAxes, style='italic', size=14, color='white')
     ranges = [0, 1, 2, 10, 20, 50, 100]  # , 500]  # , 1000]
     num_colors = len(ranges)
-    color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
+    # color_palette = matplotlib.cm.viridis(np.linspace(0.33, 1, num_colors + 1))
+    delta = 1 / (num_colors + 1)
+    colors = [delta * i for i in range(num_colors+1)]
+    color_palette = matplotlib.cm.viridis(colors)
 
     for section_name in CONTEST_SECTIONS.keys():
         qsos = qsos_by_section.get(section_name)
