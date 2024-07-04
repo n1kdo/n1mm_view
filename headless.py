@@ -22,12 +22,16 @@ __copyright__ = 'Copyright 2017 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
+                    level=logging.DEBUG) #.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
 
 def makePNGTitle(image_dir, title):
-    return ''.join([image_dir, '/', re.sub('[^\w\-_]', '_', title), '.png'])
+    if image_dir is None:
+        image_dir = './images'
+    title = title.replace(' ', '_')
+    return f'{image_dir}/{title}.png'
+    # return ''.join([image_dir, '/', re.sub('[^\w\-_]', '_', title), '.png'])
 
 
 def create_images(size, image_dir, last_qso_timestamp):
@@ -42,6 +46,7 @@ def create_images(size, image_dir, last_qso_timestamp):
     operator_qso_rates = []
     qsos_per_hour = []
     qsos_by_section = {}
+    qso_classes = []
 
     db = None
     data_updated = False
@@ -82,8 +87,11 @@ def create_images(size, image_dir, last_qso_timestamp):
             # load QSO rates per Hour by Band
             qsos_per_hour, qsos_per_band = dataaccess.get_qsos_per_hour_per_band(cursor)
 
-        # load QSOs by Section
-        qsos_by_section = dataaccess.get_qsos_by_section(cursor)
+            # load qso exchange data: what class are the other stations?
+            qso_classes = dataaccess.get_qso_classes(cursor)
+
+            # load QSOs by Section
+            qsos_by_section = dataaccess.get_qsos_by_section(cursor)
 
         logging.debug('load data done')
     except sqlite3.OperationalError as error:
@@ -146,8 +154,14 @@ def create_images(size, image_dir, last_qso_timestamp):
         except Exception as e:
             logging.exception(e)
         try:
-            image_data, image_size = graphics.qso_rates_chart(size, qsos_per_hour)
-            filename = makePNGTitle(image_dir, 'qso_rates_chart')
+            image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
+            filename = makePNGTitle(image_dir, 'qso_classes_graph')
+            graphics.save_image(image_data, image_size, filename)
+        except Exception as e:
+            logging.exception(e)
+        try:
+            image_data, image_size = graphics.qso_rates_graph(size, qsos_per_hour)
+            filename = makePNGTitle(image_dir, 'qso_rates_graph')
             graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
@@ -177,11 +191,12 @@ def main():
     logging.debug("Checking for IMAGE_DIR")
     logging.info("IMAGE_DIR set to %s - checking if exists" % config.IMAGE_DIR)
     # Check if the dir given exists and create if necessary
-    if not os.path.exists(config.IMAGE_DIR):
-        logging.error("%s did not exist - creating..." % config.IMAGE_DIR)
-        os.makedirs(config.IMAGE_DIR)
-    if not os.path.exists(config.IMAGE_DIR):
-        sys.exit('Image %s directory could not be created' % config.IMAGE_DIR)
+    if config.IMAGE_DIR is not None:
+        if not os.path.exists(config.IMAGE_DIR):
+            logging.error("%s did not exist - creating..." % config.IMAGE_DIR)
+            os.makedirs(config.IMAGE_DIR)
+        if not os.path.exists(config.IMAGE_DIR):
+            sys.exit('Image %s directory could not be created' % config.IMAGE_DIR)
        
     logging.info('creating world...')
 #    base_map = graphics.create_map()

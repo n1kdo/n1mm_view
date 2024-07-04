@@ -47,7 +47,7 @@ def create_tables(db, cursor):
                    '     exchange char(4),\n'
                    '     section char(4),\n'
                    '     comment TEXT,\n'
-                   '     qso_id  char(32) UNIQUE NOT NULL);')
+                   '     qso_id  char(32) PRIMARY KEY NOT NULL);')  # this is primary key to speed up Update & Delete
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_band_id ON qso_log(band_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_mode_id ON qso_log(mode_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_operator_id ON qso_log(operator_id);')
@@ -55,6 +55,7 @@ def create_tables(db, cursor):
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_section ON qso_log(section);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_qso_id ON qso_log(qso_id);')
     db.commit()
+
 
 def record_contact_combined(db, cursor, operators, stations,
                    timestamp, mycall, band, mode, operator, station,
@@ -92,7 +93,6 @@ def record_contact_combined(db, cursor, operators, stations,
         logging.warning('[dataaccess] Insert Failed: %s\nError: %s' % (qso_id, str(err)))
 
 
-
 def record_contact(db, cursor, operators, stations,
                    timestamp, mycall, band, mode, operator, station,
                    rx_freq, tx_freq, callsign, rst_sent, rst_recv,
@@ -127,6 +127,7 @@ def record_contact(db, cursor, operators, stations,
         db.commit()
     except Exception as err:
         logging.warning('[dataaccess] Insert Failed: %s\nError: %s' % (qso_id, str(err)))
+
 
 def update_contact(db, cursor, operators, stations,
                    timestamp, mycall, band, mode, operator, station,
@@ -163,6 +164,7 @@ def update_contact(db, cursor, operators, stations,
     except Exception as err:
         logging.warning('[dataaccess] Update Failed: %s\nError: %s' % (qso_id, str(err)))
 
+
 def delete_contact(db, cursor, timestamp, station, callsign):
     """
     Delete the results of a delete in N1MM
@@ -179,6 +181,7 @@ def delete_contact(db, cursor, timestamp, station, callsign):
     except Exception as e:
         logging.exception('[dataaccess] Exception deleting contact from db.')
         return ''
+
 
 def delete_contact_by_qso_id(db, cursor, qso_id):
     """
@@ -261,6 +264,13 @@ def get_qso_band_modes(cursor):
         qso_band_modes[row[1]][constants.Modes.MODE_TO_SIMPLE_MODE[row[2]]] += row[0]
     return qso_band_modes
 
+
+def get_qso_classes(cursor):
+    cursor.execute('SELECT COUNT(*), exchange FROM qso_log group by exchange;')
+    exchanges = []
+    for row in cursor:
+        exchanges.append((row[0], row[1]))
+    return exchanges
 
 def get_qsos_per_hour_per_band(cursor):
     qsos_per_hour = []

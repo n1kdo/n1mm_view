@@ -17,7 +17,7 @@ import config
 import dataaccess
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019, 2024 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 BROADCAST_BUF_SIZE = 2048
@@ -82,7 +82,7 @@ class N1mmMessageParser:
     """
     this is a cheap and dirty class to parse N1MM+ broadcast messages.
     It accepts the message and returns a dict, keyed by the element name.
-    This is unsuitable for any  for any other purpose, since it throws away the
+    This is unsuitable for any other purpose, since it throws away the
     outer _contactinfo_ (or whatever) element -- instead it returns the name of
     the outer element as the value of the __messagetype__ key.
     OTOH, hopefully it is faster than using the DOM-based minidom.parse
@@ -162,14 +162,12 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
     """
     Process a N1MM+ contactinfo message
     """
-    bInsert = False
     message = compress_message(message)
-    #logging.debug(message)
     data = parser.parse(message)
-    message_type = data.get('__messagetype__') or ''
-    logging.debug('Received UDP message %s' % (message_type))
-    if message_type == 'contactinfo' or message_type == 'contactreplace':
-        qso_id = data.get('ID') or '';
+    message_type = data.get('__messagetype__', '')
+    logging.debug(f'Received UDP message {message_type}')
+    if message_type in ['contactinfo', 'contactreplace']:
+        qso_id = data.get('ID', '')
         
         # If no ID tag from N1MM, generate a hash for uniqueness
         if len(qso_id) == 0:
@@ -178,24 +176,23 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
            qso_id = qso_id.replace('-','')
             
         qso_timestamp = data.get('timestamp')
-        mycall = data.get('mycall')
+        mycall = data.get('mycall', '').upper()
         band = data.get('band')
-        mode = data.get('mode')
-        operator = data.get('operator')
-        station_name = data.get('StationName')
+        mode = data.get('mode', '').upper()
+        operator = data.get('operator', '').upper()
+        station_name = data.get('StationName', '').upper()
         if station_name is None or station_name == '':
-            station_name = data.get('NetBiosName')
-        station = station_name
+            station_name = data.get('NetBiosName', '')
+        station = station_name.upper()
         rx_freq = int(data.get('rxfreq')) * 10  # convert to Hz
         tx_freq = int(data.get('txfreq')) * 10
-        callsign = data.get('call')
+        callsign = data.get('call', '').upper()
         rst_sent = data.get('snt')
         rst_recv = data.get('rcv')
-        exchange = data.get('exchange1')
-        section = data.get('section')
-        comment = data.get('comment') or ''
+        exchange = data.get('exchange1', '').upper()
+        section = data.get('section', '').upper()
+        comment = data.get('comment', '')
         
-
         # convert qso_timestamp to datetime object
         timestamp = convert_timestamp(qso_timestamp)
 
@@ -204,29 +201,31 @@ def process_message(parser, db, cursor, operators, stations, message, seen):
                                            rx_freq, tx_freq, callsign, rst_sent, rst_recv,
                                            exchange, section, comment, qso_id)
     elif message_type == 'RadioInfo':
-        logging.debug('Received radioInfo message')
+        logging.debug('Received RadioInfo message')
     elif message_type == 'contactdelete':
-        qso_id = data.get('ID') or '';
+        qso_id = data.get('ID') or ''
         
         # If no ID tag from N1MM, generate a hash for uniqueness
         if len(qso_id) == 0:
-           qso_id = checksum(data)
+            qso_id = checksum(data)
         else:
-           qso_id = qso_id.replace('-','')
+            qso_id = qso_id.replace('-', '')
         
-        logging.info('Delete QSO Request with ID %s' % (qso_id))
+        logging.info(f'Delete QSO Request with ID {qso_id}')
         dataaccess.delete_contact_by_qso_id(db, cursor, qso_id)
         
     elif message_type == 'dynamicresults':
         logging.debug('Received Score message')
     else:
-        logging.warning('unknown message type {} received, ignoring.'.format(message_type))
+        logging.warning(f'unknown message type "{message_type}" received, ignoring.')
         logging.debug(message)
 
 
 def message_processor(q, event):
     global run
     logging.info('collector message_processor starting.')
+    message_count = 0
+    seen = set()
     db = sqlite3.connect(config.DATABASE_FILENAME)
     try:
         cursor = db.cursor()
@@ -235,8 +234,6 @@ def message_processor(q, event):
         operators = Operators(db, cursor)
         stations = Stations(db, cursor)
         parser = N1mmMessageParser()
-        message_count = 0
-        seen = set()
 
         thread_run = True
         while not event.is_set() and thread_run:
@@ -251,7 +248,7 @@ def message_processor(q, event):
         db.close()
         logging.info('db closed')
         run = False
-    logging.info('collector message_processor exited, {} messages collected.'.format(message_count))
+        logging.info(f'collector message_processor exited, {message_count} messages collected.')
 
 
 def main():
