@@ -4,7 +4,7 @@ n1mm_view dashboard
 This program displays QSO statistics collected by the collector.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 import logging
 import os
 import gc
@@ -37,7 +37,7 @@ IMAGE_COUNT = 10
 IMAGE_MESSAGE = 1
 CRAWL_MESSAGE = 2
 
-IMAGE_FORMAT = 'RGB'
+IMAGE_FORMAT = 'ARGB'
 SAVE_PNG = False
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
@@ -187,7 +187,7 @@ def delta_time_to_string(delta_time):
 def update_crawl_message(crawl_messages):
     crawl_messages.set_message(0, config.EVENT_NAME)
     crawl_messages.set_message_colors(0, graphics.BRIGHT_BLUE, graphics.BLACK)
-    now = datetime.utcnow()
+    now = datetime.now(tz=UTC)
     crawl_messages.set_message(1, datetime.strftime(now, '%H:%M:%S'))
     if now < config.EVENT_START_TIME:
         delta = config.EVENT_START_TIME - now
