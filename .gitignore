@@ -2,7 +2,7 @@
 .idea/
 *.s3db*
 n1mm_view.db
-*.ini
+config.ini
 *.png
 *.jpg
 *.db.*
