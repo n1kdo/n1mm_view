@@ -11,7 +11,7 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2019, 2020, Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-config = Config('config.ini')
+config = Config()
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime

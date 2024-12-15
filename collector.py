@@ -20,7 +20,7 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2017, 2019, 2024 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-config = Config('config.ini')
+config = Config()
 BROADCAST_BUF_SIZE = 2048
 
 run = True

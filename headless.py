@@ -21,7 +21,7 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2017 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-config = Config('config.ini')
+config = Config()
 print ('Config.EVENT_NAME = %s' % config.EVENT_NAME)
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.DEBUG) #.LOG_LEVEL)
@@ -109,62 +109,72 @@ def create_images(size, image_dir, last_qso_timestamp):
     if data_updated:
         try:
             image_data, image_size = graphics.qso_summary_table(size, qso_band_modes)
-            filename = makePNGTitle(image_dir, 'qso_summary_table')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_summary_table')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_rates_table(size, operator_qso_rates)
-            filename = makePNGTitle(image_dir, 'qso_rates_table')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_rates_table')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_operators_graph(size, qso_operators)
-            filename = makePNGTitle(image_dir, 'qso_operators_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_operators_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_operators_table(size, qso_operators)
-            filename = makePNGTitle(image_dir, 'qso_operators_table')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_operators_table')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_operators_table_all(size, qso_operators)
-            filename = makePNGTitle(image_dir, 'qso_operators_table_all')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_operators_table_all')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)  
         try:
             image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
-            filename = makePNGTitle(image_dir, 'qso_stations_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_stations_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
-            filename = makePNGTitle(image_dir, 'qso_bands_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_bands_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
-            filename = makePNGTitle(image_dir, 'qso_modes_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_modes_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
-            filename = makePNGTitle(image_dir, 'qso_classes_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_classes_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
         try:
             image_data, image_size = graphics.qso_rates_graph(size, qsos_per_hour)
-            filename = makePNGTitle(image_dir, 'qso_rates_graph')
-            graphics.save_image(image_data, image_size, filename)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'qso_rates_graph')
+               graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
 
@@ -172,9 +182,10 @@ def create_images(size, image_dir, last_qso_timestamp):
     try:
         # There is a memory leak in the next code -- is there?
         image_data, image_size = graphics.draw_map(size, qsos_by_section)
-        filename = makePNGTitle(image_dir, 'sections_worked_map')
-        graphics.save_image(image_data, image_size, filename)
-        gc.collect()
+        if image_data is not None:
+           filename = makePNGTitle(image_dir, 'sections_worked_map')
+           graphics.save_image(image_data, image_size, filename)
+           gc.collect()
 
     except Exception as e:
         logging.exception(e)

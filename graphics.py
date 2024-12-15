@@ -4,6 +4,7 @@
 import calendar
 import logging
 import os
+import datetime
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -24,7 +25,7 @@ __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2019, 2021, 2024 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
-config = Config('config.ini')
+config = Config()
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
 BLUE = pygame.Color('#3333cc')
@@ -99,12 +100,15 @@ def show_graph(screen, size, surf):
         x_offset = (size[0] - surf.get_width()) / 2
         screen.fill((0, 0, 0))
         screen.blit(surf, (x_offset, 0))
-    logging.debug('show_graph() done')
+    logging.debug('[graphics] show_graph() done')
 
 
 def save_image(image_data, image_size, filename):
+    if not all(image_size):
+       logging.debug('[graphics] Returning early from save_image since image_size is {0,0}')
+       return
     surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
-    logging.debug('Saving file to %s', filename)
+    logging.debug('[graphics] Saving file to %s', filename)
     pygame.image.save(surface, filename)
 
 
@@ -114,7 +118,7 @@ def make_pie(size, values, labels, title):
     return the chart as a pygame surface
     make the pie chart a square that is as tall as the display.
     """
-    logging.debug('make_pie(...,...,%s)', title)
+    logging.debug('[graphics] make_pie(...,...,%s)', title)
     new_labels = []
     for i in range(0, len(labels)):
         new_labels.append(f'{labels[i]} ({values[i]})')
@@ -145,7 +149,7 @@ def make_pie(size, values, labels, title):
 
     plt.close(fig)
 
-    logging.debug('make_pie(...,...,%s) done', title)
+    logging.debug('[graphics] make_pie(...,...,%s) done', title)
     return raw_data, canvas_size
 
 
@@ -373,10 +377,12 @@ def qso_rates_graph(size, qsos_per_hour):
     make the qsos per hour per band chart
     returns a pygame surface
     """
+    
     title = 'QSOs per Hour by Band'
     qso_counts = [[], [], [], [], [], [], [], [], [], []]
 
     if qsos_per_hour is None or len(qsos_per_hour) == 0:
+        logging.debug('No QSOs so size will be invalid')
         return None, (0, 0)
 
     data_valid = len(qsos_per_hour) != 0
@@ -387,7 +393,7 @@ def qso_rates_graph(size, qsos_per_hour):
             cl = qso_counts[i]
             cl.append(c)
 
-    logging.debug('make_plot(...,...,%s)', title)
+    logging.debug('[graphics] make_plot(...,...,%s)', title)
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
@@ -399,7 +405,7 @@ def qso_rates_graph(size, qsos_per_hour):
 
     ax.set_title(title, color='white', size=48, weight='bold')
 
-    st = calendar.timegm(EVENT_START_TIME.timetuple())
+    st = calendar.timegm(config.EVENT_START_TIME.timetuple())
     lt = calendar.timegm(qsos_per_hour[-1][0].timetuple())
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
@@ -408,8 +414,8 @@ def qso_rates_graph(size, qsos_per_hour):
             start_date = dates[0]  # matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
             end_date = dates[-1]  # matplotlib.dates.date2num(qsos_per_hour[-1][0].timetuple())
         else:
-            start_date = matplotlib.dates.date2num(EVENT_START_TIME)
-            end_date = matplotlib.dates.date2num(EVENT_END_TIME)
+            start_date = matplotlib.dates.date2num(config.EVENT_START_TIME)
+            end_date = matplotlib.dates.date2num(config.EVENT_END_TIME)
         ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
@@ -440,6 +446,8 @@ def qso_rates_graph(size, qsos_per_hour):
 
     plt.close(fig)
     canvas_size = canvas.get_width_height()
+    logging.info('[graphics] canvas_size = ')
+    logging.info(canvas_size)
     return raw_data, canvas_size
 
 
@@ -538,7 +546,7 @@ def draw_table(size, cell_text, title, font=None):
             textpos.right = x - text_x_offset
             surf.blit(text, textpos)
         y += row_height
-    logging.debug('draw_table(...,%s) done', title)
+    logging.debug('[graphics] draw_table(...,%s) done', title)
     size = surf.get_size()
     data = pygame.image.tostring(surf, 'RGB')
 
@@ -603,7 +611,7 @@ def draw_map(size, qsos_by_section):
     ax.add_feature(nightshade.Nightshade(date, alpha=0.5))
 
     # show QTH marker
-    ax.plot(QTH_LONGITUDE, QTH_LATITUDE, '.', color='r')
+    ax.plot(config.QTH_LONGITUDE, config.QTH_LATITUDE, '.', color='r')
 
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
@@ -613,5 +621,5 @@ def draw_map(size, qsos_by_section):
     fig.clf()
     plt.close(fig)
     canvas_size = canvas.get_width_height()
-    logging.debug('draw_map() done')
+    logging.debug('[graphics] draw_map() done')
     return raw_data, canvas_size

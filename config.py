@@ -4,9 +4,20 @@ import configparser
 import logging
 import datetime
 
-class Config:
-    def __init__(self, filename='config.ini'):
-        # read ini file 
+class Singleton(type):
+    def __init__(self, name, bases, mmbs):
+        super(Singleton, self).__init__(name, bases, mmbs)
+        self._instance = super(Singleton, self).__call__()
+
+    def __call__(self, *args, **kw):
+        return self._instance
+
+class Config(metaclass = Singleton):
+        
+    def __init__(self, *args, **kw):
+    #def __init__(self, filename='config.ini'):
+        # read ini file
+        print ('*******Config__init__ running...') 
         # parse into properties of this class
         self.DATABASE_FILENAME = 'n1mm_view.WFD2025.db'
         self.EVENT_NAME = 'CARS/SPARC/UPARC Winter Field Day'
@@ -18,11 +29,11 @@ class Config:
         self.QTH_LATITUDE = 27.9837941202094249
         self.QTH_LONGITUDE = -82.74670114956339
         self.DISPLAY_DWELL_TIME = 6
-        self.DATA_DWELL_TIME = 60
+        self.DATA_DWELL_TIME = 15
         self.LOG_LEVEL = logging.DEBUG
-        self.IMAGE_DIR = None  #  '/mnt/ramdisk/n1mm_view/html'
+        self.IMAGE_DIR = '/home/pi/projects/n1mm_view_charts/html'
         self.HEADLESS = False
-        self.POST_FILE_COMMAND = 'rsync -avz /mnt/ramdisk/n1mm_view/html/* sparc:www/n1mm_view/html'
+        self.POST_FILE_COMMAND = 'rsync -avz /home/pi/projects/n1mm_view_charts/html/* uparc:www/n1mm_view/html'
         self.VIEW_FONT = 64
         self.BIGGER_FONT = 180
 
