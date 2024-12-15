@@ -370,7 +370,7 @@ def qso_rates_table(size, operator_qso_rates):
         return draw_table(size, operator_qso_rates, "QSO/Hour Rates")
 
 
-def qso_rates_chart(size, qsos_per_hour):
+def qso_rates_graph(size, qsos_per_hour):
     """
     make the qsos per hour per band chart
     returns a pygame surface
