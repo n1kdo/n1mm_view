@@ -22,11 +22,10 @@ __copyright__ = 'Copyright 2017 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
 config = Config()
-print ('Config.EVENT_NAME = %s' % config.EVENT_NAME)
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.DEBUG) #.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
-
+#logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(module)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+#                    level=config.LOG_LEVEL)
+#logging.Formatter.converter = time.gmtime
+logging.debug('Getting started here in headless.py')
 
 def makePNGTitle(image_dir, title):
     if image_dir is None:
@@ -68,7 +67,7 @@ def create_images(size, image_dir, last_qso_timestamp):
         # get timestamp from the last record in the database
         last_qso_time, message = dataaccess.get_last_qso(cursor)
 
-        logging.debug('old_timestamp = %d, timestamp = %d', last_qso_timestamp, last_qso_time)
+        logging.debug('old_timestamp = %s, timestamp = %s' % (last_qso_timestamp, last_qso_time))
         if last_qso_time != last_qso_timestamp:
             # last_qso_time is passed as the result and updated in call to this function.
             logging.debug('data updated!')

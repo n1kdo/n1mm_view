@@ -69,7 +69,7 @@ def record_contact_combined(db, cursor, operators, stations,
     operator_id = operators.lookup_operator_id(operator)
     station_id = stations.lookup_station_id(station)
 
-    logging.info('[dataaccess] QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
+    logging.info(' QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
         time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
         mycall, band,
         mode, operator,
@@ -90,7 +90,7 @@ def record_contact_combined(db, cursor, operators, stations,
 
         db.commit()
     except Exception as err:
-        logging.warning('[dataaccess] Insert Failed: %s\nError: %s' % (qso_id, str(err)))
+        logging.warning('Insert Failed: %s\nError: %s' % (qso_id, str(err)))
 
 
 def record_contact(db, cursor, operators, stations,
@@ -105,7 +105,7 @@ def record_contact(db, cursor, operators, stations,
     operator_id = operators.lookup_operator_id(operator)
     station_id = stations.lookup_station_id(station)
 
-    logging.info('[dataaccess] QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
+    logging.info('QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
         time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
         mycall, band,
         mode, operator,
@@ -113,7 +113,7 @@ def record_contact(db, cursor, operators, stations,
         rst_recv, exchange, section, comment, qso_id))
 
     if band_id is None or mode_id is None or operator_id is None or station_id is None:
-        logging.warning('[dataaccess] cannot log this QSO, bad data.')
+        logging.warning('cannot log this QSO, bad data.')
         return
     try:
         cursor.execute(
@@ -126,7 +126,7 @@ def record_contact(db, cursor, operators, stations,
 
         db.commit()
     except Exception as err:
-        logging.warning('[dataaccess] Insert Failed: %s\nError: %s' % (qso_id, str(err)))
+        logging.warning('Insert Failed: %s\nError: %s' % (qso_id, str(err)))
 
 
 def update_contact(db, cursor, operators, stations,
@@ -141,7 +141,7 @@ def update_contact(db, cursor, operators, stations,
     operator_id = operators.lookup_operator_id(operator)
     station_id = stations.lookup_station_id(station)
 
-    logging.info('[dataaccess] Update QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
+    logging.info('Update QSO: %s %6s %4s %-6s %-12s %-12s %10d %10d %-6s %3s %3s %3s %-3s %-3s %32s' % (
         time.strftime('%Y-%m-%d %H:%M:%S', timestamp),
         mycall, band,
         mode, operator,
@@ -162,7 +162,7 @@ def update_contact(db, cursor, operators, stations,
 
         db.commit()
     except Exception as err:
-        logging.warning('[dataaccess] Update Failed: %s\nError: %s' % (qso_id, str(err)))
+        logging.warning('Update Failed: %s\nError: %s' % (qso_id, str(err)))
 
 
 def delete_contact(db, cursor, timestamp, station, callsign):
@@ -173,13 +173,13 @@ def delete_contact(db, cursor, timestamp, station, callsign):
     """ station_id = stations.lookup_station_id(station)
 """
 
-    logging.info('[dataaccess] DELETEQSO: %s, timestamp = %s' % (callsign, calendar.timegm(timestamp)))
+    logging.info('DELETEQSO: %s, timestamp = %s' % (callsign, calendar.timegm(timestamp)))
     try:
         cursor.execute(
             "delete from qso_log where callsign = ? and timestamp = ?", (callsign, calendar.timegm(timestamp),))
         db.commit()
     except Exception as e:
-        logging.exception('[dataaccess] Exception deleting contact from db.')
+        logging.exception('Exception deleting contact from db.')
         return ''
 
 
@@ -191,12 +191,12 @@ def delete_contact_by_qso_id(db, cursor, qso_id):
     """ station_id = stations.lookup_station_id(station)
 """
 
-    logging.debug('[dataaccess] DELETEQSOByqso_id: %s' % (qso_id))
+    logging.debug('DELETEQSOByqso_id: %s' % (qso_id))
     try:
         cursor.execute('delete from qso_log where qso_id = ?;', (str(qso_id),))
         db.commit()
     except Exception as e:
-        logging.exception('[dataaccess] Exception deleting contact (by qso_id) from db.')
+        logging.exception('Exception deleting contact (by qso_id) from db.')
         return ''
 
 
@@ -211,12 +211,12 @@ def get_last_qso(cursor) :
         message = 'Last QSO: %s %s %s on %s by %s at %s' % (
             row[1], row[2], row[3], constants.Bands.BANDS_TITLE[row[5]], row[4],
             datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
-    logging.debug('[dataaccess] %s' % (message))
+    logging.debug('%s' % (message))
     return last_qso_time, message
 
 
 def get_operators_by_qsos(cursor):
-    logging.debug('[dataaccess] Load QSOs by Operator')
+    logging.debug('Load QSOs by Operator')
     qso_operators = []
     cursor.execute('SELECT name, COUNT(operator_id) AS qso_count \n'
                    'FROM qso_log JOIN operator ON operator.id = operator_id \n'
@@ -227,7 +227,7 @@ def get_operators_by_qsos(cursor):
 
 
 def get_station_qsos(cursor):
-    logging.debug('[dataaccess] Load QSOs by Station')
+    logging.debug('Load QSOs by Station')
     qso_stations = []
     cursor.execute('SELECT name, COUNT(station_id) AS qso_count \n'
                    'FROM qso_log JOIN station ON station.id = station_id GROUP BY station_id;')
@@ -237,7 +237,7 @@ def get_station_qsos(cursor):
 
 
 def get_qsos_per_hour_per_operator(cursor, last_qso_time):
-    logging.debug('[dataaccess] Load QSOs per Hour by Operator')
+    logging.debug('Load QSOs per Hour by Operator')
     slice_minutes = 15
     slices_per_hour = 60 / slice_minutes
     start_time = last_qso_time - slice_minutes * 60
@@ -279,7 +279,7 @@ def get_qsos_per_hour_per_band(cursor):
     slices_per_hour = 60 / slice_minutes
     window_seconds = slice_minutes * 60
 
-    logging.debug('[dataaccess] Load QSOs per Hour by Band')
+    logging.debug('Load QSOs per Hour by Band')
     cursor.execute('SELECT timestamp / %d * %d AS ts, band_id, COUNT(*) AS qso_count \n'
                    'FROM qso_log GROUP BY ts, band_id;' % (window_seconds, window_seconds))
     for row in cursor:
@@ -301,10 +301,10 @@ def get_qsos_per_hour_per_band(cursor):
 
 
 def get_qsos_by_section(cursor):
-    logging.debug('[dataaccess] Load QSOs by Section')
+    logging.debug('Load QSOs by Section')
     qsos_by_section = {}
     cursor.execute('SELECT section, COUNT(section) AS qsos FROM qso_log GROUP BY section;')
     for row in cursor:
         qsos_by_section[row[0]] = row[1]
-        logging.debug(f'[dataaccess] Section {row[0]} {row[1]}')
+        logging.debug(f'Section {row[0]} {row[1]}')
     return qsos_by_section

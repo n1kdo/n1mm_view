@@ -100,15 +100,15 @@ def show_graph(screen, size, surf):
         x_offset = (size[0] - surf.get_width()) / 2
         screen.fill((0, 0, 0))
         screen.blit(surf, (x_offset, 0))
-    logging.debug('[graphics] show_graph() done')
+    logging.debug('show_graph() done')
 
 
 def save_image(image_data, image_size, filename):
     if not all(image_size):
-       logging.debug('[graphics] Returning early from save_image since image_size is {0,0}')
+       logging.debug('Returning early from save_image since image_size is {0,0}')
        return
     surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
-    logging.debug('[graphics] Saving file to %s', filename)
+    logging.debug('Saving file to %s', filename)
     pygame.image.save(surface, filename)
 
 
@@ -118,7 +118,7 @@ def make_pie(size, values, labels, title):
     return the chart as a pygame surface
     make the pie chart a square that is as tall as the display.
     """
-    logging.debug('[graphics] make_pie(...,...,%s)', title)
+    logging.debug('make_pie(...,...,%s)', title)
     new_labels = []
     for i in range(0, len(labels)):
         new_labels.append(f'{labels[i]} ({values[i]})')
@@ -149,7 +149,7 @@ def make_pie(size, values, labels, title):
 
     plt.close(fig)
 
-    logging.debug('[graphics] make_pie(...,...,%s) done', title)
+    logging.debug('make_pie(...,...,%s) done', title)
     return raw_data, canvas_size
 
 
@@ -393,7 +393,7 @@ def qso_rates_graph(size, qsos_per_hour):
             cl = qso_counts[i]
             cl.append(c)
 
-    logging.debug('[graphics] make_plot(...,...,%s)', title)
+    logging.debug('make_plot(...,...,%s)', title)
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
     fig = plt.Figure(figsize=(width_inches, height_inches), dpi=100, tight_layout={'pad': 0.10}, facecolor='black')
@@ -446,8 +446,6 @@ def qso_rates_graph(size, qsos_per_hour):
 
     plt.close(fig)
     canvas_size = canvas.get_width_height()
-    logging.info('[graphics] canvas_size = ')
-    logging.info(canvas_size)
     return raw_data, canvas_size
 
 
@@ -546,7 +544,7 @@ def draw_table(size, cell_text, title, font=None):
             textpos.right = x - text_x_offset
             surf.blit(text, textpos)
         y += row_height
-    logging.debug('[graphics] draw_table(...,%s) done', title)
+    logging.debug('draw_table(...,%s) done', title)
     size = surf.get_size()
     data = pygame.image.tostring(surf, 'RGB')
 
@@ -621,5 +619,5 @@ def draw_map(size, qsos_by_section):
     fig.clf()
     plt.close(fig)
     canvas_size = canvas.get_width_height()
-    logging.debug('[graphics] draw_map() done')
+    logging.debug('draw_map() done')
     return raw_data, canvas_size

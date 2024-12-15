@@ -11,7 +11,7 @@ import logging
 from config import Config
 
 config = Config()
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s [%(module)s::%(funcName)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime
 
