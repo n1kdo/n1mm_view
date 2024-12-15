@@ -17,13 +17,14 @@ import matplotlib.pyplot as plt
 import pygame
 from matplotlib.dates import HourLocator, DateFormatter
 
-from config import *
+from config import Config
 from constants import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2019, 2021, 2024 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
+config = Config('config.ini')
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
 BLUE = pygame.Color('#3333cc')

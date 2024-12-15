@@ -8,8 +8,9 @@ __license__ = 'Simplified BSD'
 
 import time
 import logging
-import config
+from config import Config
 
+config = Config('config.ini')
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=config.LOG_LEVEL)
 logging.Formatter.converter = time.gmtime

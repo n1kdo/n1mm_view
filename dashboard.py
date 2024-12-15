@@ -14,13 +14,15 @@ import sqlite3
 import sys
 import time
 
-import config
+from config import Config
 import dataaccess
 import graphics
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
+
+config = Config('config.ini')
 
 LOGO_IMAGE_INDEX = 0
 QSO_COUNTS_TABLE_INDEX = 1
