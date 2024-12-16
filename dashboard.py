@@ -43,11 +43,6 @@ CRAWL_MESSAGE = 2
 IMAGE_FORMAT = 'RGB'
 SAVE_PNG = False
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
-
-
 def load_data(size, q, last_qso_timestamp):
     """
     load data from the database tables
