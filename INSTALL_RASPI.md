@@ -18,7 +18,8 @@ This last command will run for quite some time.
 The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+ (18 minutes on a Pi 4B). We gave it a lot of things to do so you won't need to do them.
 While you are waiting, you could create a splash screen for your event: a 1000x1000 portable network graphics (.png) image in RGB format works great.   
 
-Edit the config.py file with your operating settings. "MyClubCall" is a placeholder. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
+Rename the file config-sample.ini to ~/.config/n1mm_view.ini.
+Edit the config file with your operating settings. "MyClubCall" is a placeholder. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
 
 # Running N1MM_view
 There are two programs of interest.  You will want to open a separate terminal window for each.
