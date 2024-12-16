@@ -26,7 +26,7 @@ Use the following command if so desired:
 sudo ln -s  /home/pi/.config/n1mm_view.ini    /root/.config/n1mm_view.ini
 ```
  
-Edit the config file with your operating settings. "MyClubCall" is a placeholder. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
+Edit the config file with your operating settings. For testing, make the event start time before and the event end time after your current clock time. Other options in the configuration file are helpfully commented.
 
 # Running N1MM_view
 There are two programs of interest.  You will want to open a separate terminal window for each.
