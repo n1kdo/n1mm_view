@@ -8,14 +8,12 @@ __license__ = 'Simplified BSD'
 
 import time
 import logging
+
 from config import Config
 
 config = Config()
-# This is the only logging.BasicConfig that sets the format as this one is called first.
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s [%(module)s::%(funcName)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
 
+logging.info('Starting constants.py')
 
 class Bands:
     """

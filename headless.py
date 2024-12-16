@@ -25,6 +25,7 @@ config = Config()
 #logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(module)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
 #                    level=config.LOG_LEVEL)
 #logging.Formatter.converter = time.gmtime
+
 logging.debug('Getting started here in headless.py')
 
 def makePNGTitle(image_dir, title):
