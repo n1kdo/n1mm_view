@@ -15,7 +15,7 @@ class Singleton(type):
 class Config(metaclass = Singleton):
         
     def __init__(self, *args, **kw):
-    #def __init__(self, filename='config.ini'):
+    #def __init__(self, filename='~/.config/n1mm_view.ini'):
         # read ini file
         cfg = configparser.ConfigParser()
         cfg.read('config.ini')
@@ -47,7 +47,7 @@ class Config(metaclass = Singleton):
         self.DATA_DWELL_TIME = cfg.getint('GLOBAL','DATA_DWELL_TIME',fallback=60)
         self.LOG_LEVEL = cfg.get('GLOBAL','LOG_LEVEL',fallback='ERROR')
         self.IMAGE_DIR = cfg.get('HEADLESS INFO','IMAGE_DIR',fallback='/mnt/ramdisk/n1mm_view/html')
-        self.HEADLESS = cfg.getboolean('HEADLESS INFO','Headless') #False
+        self.HEADLESS = cfg.getboolean('HEADLESS INFO','HEADLESS',fallback = False) #False
         self.POST_FILE_COMMAND = cfg.get('HEADLESS INFO','POST_FILE_COMMAND', fallback=None)
         self.VIEW_FONT = cfg.getint('FONT INFO','VIEW_FONT',fallback=64)
         self.BIGGER_FONT = cfg.getint('FONT INFO','BIGGER_FONT',fallback=180)
