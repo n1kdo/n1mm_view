@@ -110,6 +110,7 @@ def main():
         graphics.save_image(image_data, image_size, 'images/qsos_map.png')
         gc.collect()
 
+        image = pygame.image.frombuffer(image_data, image_size, 'RGB')
         graphics.show_graph(screen, size, image)
         pygame.display.flip()
 
