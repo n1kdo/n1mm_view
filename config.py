@@ -94,14 +94,14 @@ class Config(metaclass = Singleton):
         
         dt = cfg.get('EVENT INFO','START_TIME')
         try:
-           self.EVENT_START_TIME = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S')
+            self.EVENT_START_TIME = datetime.datetime.fromisoformat(dt)
         except (ValueError, TypeError):
            logging.exception('*** INVALID START_TIME *** Value for START_TIME (%s) is not valid' % (dt))
            exit()
         
         dt = cfg.get('EVENT INFO','END_TIME')
         try:
-           self.EVENT_END_TIME = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S')
+            self.EVENT_END_TIME = datetime.datetime.fromisoformat(dt)
         except (ValueError, TypeError):
            logging.exception('*** INVALID END_TIME *** Value for END_TIME (%s) is not valid' % (dt))
            exit()

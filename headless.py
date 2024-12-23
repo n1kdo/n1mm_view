@@ -175,7 +175,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                filename = makePNGTitle(image_dir, 'qso_rates_graph')
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
-               logging.exception(e)
+            logging.exception(e)
         try:
             image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
             filename = makePNGTitle(image_dir, 'qso_classes_graph')
