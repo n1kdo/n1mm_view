@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<contactinfo>
+	<app>N1MM</app>
+	<contestname>DX</contestname>
+	<dbname>ham.s3db</dbname>
+	<contestnr>0</contestnr>
+	<timestamp>2024-06-27 19:10:39</timestamp>
+	<mycall>KF4EMZ</mycall>
+	<band>14</band>
+	<rxfreq>1424400</rxfreq>
+	<txfreq>1424400</txfreq>
+	<operator>KF4EMZ</operator>
+	<mode>USB</mode>
+	<call>KC4YCQ</call>
+	<countryprefix>K</countryprefix>
+	<wpxprefix>KC4</wpxprefix>
+	<stationprefix>KF4EMZ</stationprefix>
+	<continent>NA</continent>
+	<snt>59</snt>
+	<sntnr>2</sntnr>
+	<rcv>59</rcv>
+	<rcvnr>0</rcvnr>
+	<gridsquare></gridsquare>
+	<exchange1></exchange1>
+	<section></section>
+	<comment></comment>
+	<qth></qth>
+	<name></name>
+	<power></power>
+	<misctext></misctext>
+	<zone>5</zone>
+	<prec></prec>
+	<ck>0</ck>
+	<ismultiplier1>1</ismultiplier1>
+	<ismultiplier2>0</ismultiplier2>
+	<ismultiplier3>0</ismultiplier3>
+	<points>1</points>
+	<radionr>1</radionr>
+	<run1run2>1</run1run2>
+	<RoverLocation></RoverLocation>
+	<RadioInterfaced>0</RadioInterfaced>
+	<NetworkedCompNr>0</NetworkedCompNr>
+	<IsOriginal>True</IsOriginal>
+	<NetBiosName>WINTENDO</NetBiosName>
+	<IsRunQSO>0</IsRunQSO>
+	<StationName>WINTENDO</StationName>
+	<ID>93f89417ca4e4e8aaf220271b11ba8ef</ID>
+	<IsClaimedQso>1</IsClaimedQso>
+	<oldtimestamp>2024-06-27 19:10:39</oldtimestamp>
+	<oldcall>KC4YCQ</oldcall>
+</contactinfo>
