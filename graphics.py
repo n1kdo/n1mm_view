@@ -4,6 +4,7 @@
 import calendar
 import logging
 import os
+import datetime
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -17,13 +18,14 @@ import matplotlib.pyplot as plt
 import pygame
 from matplotlib.dates import HourLocator, DateFormatter
 
-from config import *
+from config import Config
 from constants import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2019, 2021, 2024 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
+config = Config()
 RED = pygame.Color('#ff0000')
 GREEN = pygame.Color('#33cc33')
 BLUE = pygame.Color('#3333cc')
@@ -102,6 +104,9 @@ def show_graph(screen, size, surf):
 
 
 def save_image(image_data, image_size, filename):
+    if not all(image_size):
+       logging.debug('Returning early from save_image since image_size is {0,0}')
+       return
     surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
     logging.debug('Saving file to %s', filename)
     pygame.image.save(surface, filename)
@@ -372,10 +377,12 @@ def qso_rates_graph(size, qsos_per_hour):
     make the qsos per hour per band chart
     returns a pygame surface
     """
+    
     title = 'QSOs per Hour by Band'
     qso_counts = [[], [], [], [], [], [], [], [], [], []]
 
     if qsos_per_hour is None or len(qsos_per_hour) == 0:
+        logging.debug('No QSOs so size will be invalid')
         return None, (0, 0)
 
     data_valid = len(qsos_per_hour) != 0
@@ -398,7 +405,7 @@ def qso_rates_graph(size, qsos_per_hour):
 
     ax.set_title(title, color='white', size=48, weight='bold')
 
-    st = calendar.timegm(EVENT_START_TIME.timetuple())
+    st = calendar.timegm(config.EVENT_START_TIME.timetuple())
     lt = calendar.timegm(qsos_per_hour[-1][0].timetuple())
     if data_valid:
         dates = matplotlib.dates.date2num(qso_counts[0])
@@ -407,8 +414,8 @@ def qso_rates_graph(size, qsos_per_hour):
             start_date = dates[0]  # matplotlib.dates.date2num(qsos_per_hour[0][0].timetuple())
             end_date = dates[-1]  # matplotlib.dates.date2num(qsos_per_hour[-1][0].timetuple())
         else:
-            start_date = matplotlib.dates.date2num(EVENT_START_TIME)
-            end_date = matplotlib.dates.date2num(EVENT_END_TIME)
+            start_date = matplotlib.dates.date2num(config.EVENT_START_TIME)
+            end_date = matplotlib.dates.date2num(config.EVENT_END_TIME)
         ax.set_xlim(start_date, end_date)
 
         ax.stackplot(dates, qso_counts[1], qso_counts[2], qso_counts[3], qso_counts[4], qso_counts[5], qso_counts[6],
@@ -602,7 +609,7 @@ def draw_map(size, qsos_by_section):
     ax.add_feature(nightshade.Nightshade(date, alpha=0.5))
 
     # show QTH marker
-    ax.plot(QTH_LONGITUDE, QTH_LATITUDE, '.', color='r')
+    ax.plot(config.QTH_LONGITUDE, config.QTH_LATITUDE, '.', color='r')
 
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()

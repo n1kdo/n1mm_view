@@ -13,21 +13,17 @@ import sqlite3
 import time
 import xml.parsers.expat
 
-import config
+from config import Config
 import dataaccess
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2017, 2019, 2024 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
+config = Config()
 BROADCAST_BUF_SIZE = 2048
 
 run = True
-
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
-
 
 class Operators:
     operators = {}

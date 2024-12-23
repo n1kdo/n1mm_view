@@ -14,13 +14,15 @@ import sqlite3
 import sys
 import time
 
-import config
+from config import Config
 import dataaccess
 import graphics
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
+
+config = Config()
 
 LOGO_IMAGE_INDEX = 0
 QSO_COUNTS_TABLE_INDEX = 1
@@ -40,11 +42,6 @@ CRAWL_MESSAGE = 2
 
 IMAGE_FORMAT = 'RGB'
 SAVE_PNG = False
-
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
-
 
 def load_data(size, q, last_qso_timestamp):
     """
@@ -335,7 +332,7 @@ def main():
 
     logging.debug('display setup')
 
-    images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
+    images[LOGO_IMAGE_INDEX] = pygame.image.load(config.LOGO_FILENAME)
     crawl_messages = CrawlMessages(screen, size)
     update_crawl_message(crawl_messages)
 
