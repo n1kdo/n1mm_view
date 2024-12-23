@@ -12,6 +12,7 @@ import re
 import sqlite3
 import sys
 import time
+#import subprocess
 
 from config import Config
 import dataaccess
@@ -192,6 +193,11 @@ def create_images(size, image_dir, last_qso_timestamp):
 
     #if data_updated:   # Data is always updated since the sections map is always updated. Let rsync command handle this.
     if config.POST_FILE_COMMAND is not None:
+       logging.debug('Executing command %s' % (config.POST_FILE_COMMAND))
+       #subprocess is for a future change as os.system is deprecated
+       #args=[]
+       #args.append(config.POST_FILE_COMMAND)
+       #subprocess.run(args,capture_output=False);
        os.system(config.POST_FILE_COMMAND)
 
     return last_qso_time
@@ -220,7 +226,7 @@ def main():
     while run:
         try:
             last_qso_timestamp = create_images(size, image_dir, last_qso_timestamp)
-            time.sleep(config.DATA_DWELL_TIME)
+            time.sleep(config.HEADLESS_DWELL_TIME)
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt, shutting down...')
             run = False

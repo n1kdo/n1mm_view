@@ -84,6 +84,12 @@ class Config(metaclass = Singleton):
         self.DATABASE_FILENAME = cfg.get('GLOBAL','DATABASE_FILENAME',fallback='n1mm_view.db')
         logging.info ('Using database file %s' % (self.DATABASE_FILENAME))
         
+        self.LOGO_FILENAME = cfg.get('GLOBAL','LOGO_FILENAME',fallback='logo.png')
+        if not os.path.exists(self.LOGO_FILENAME):
+           logging.error('Logo file %s does not exist' % (self.LOGO_FILENAME))
+        else:
+           logging.info ('Using logo file %s' % (self.LOGO_FILENAME))
+           
         self.EVENT_NAME = cfg.get('EVENT INFO','NAME')
         
         dt = cfg.get('EVENT INFO','START_TIME')
@@ -109,6 +115,7 @@ class Config(metaclass = Singleton):
         self.QTH_LONGITUDE = cfg.getfloat('EVENT INFO','QTH_LONGITUDE')
         self.DISPLAY_DWELL_TIME = cfg.getint('GLOBAL','DISPLAY_DWELL_TIME',fallback=6)
         self.DATA_DWELL_TIME = cfg.getint('GLOBAL','DATA_DWELL_TIME',fallback=60)
+        self.HEADLESS_DWELL_TIME = cfg.getint('GLOBAL','HEADLESS_DWELL_TIME',fallback=180)
         
         
         

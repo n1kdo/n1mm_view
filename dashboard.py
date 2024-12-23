@@ -332,7 +332,7 @@ def main():
 
     logging.debug('display setup')
 
-    images[LOGO_IMAGE_INDEX] = pygame.image.load('logo.png')
+    images[LOGO_IMAGE_INDEX] = pygame.image.load(config.LOGO_FILENAME)
     crawl_messages = CrawlMessages(screen, size)
     update_crawl_message(crawl_messages)
 
