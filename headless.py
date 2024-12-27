@@ -199,15 +199,17 @@ def create_images(size, image_dir, last_qso_timestamp):
             if image_data is not None:
                filename = makePNGTitle(image_dir, 'last_qso_table')
                graphics.save_image(image_data, image_size, filename)
+        except Exception as e:
+            logging.exception(e)
 
     # map gets updated every time so grey line moves
     try:
-        # There is a memory leak in the next code -- is there?
-        image_data, image_size = graphics.draw_map(size, qsos_by_section)
-        if image_data is not None:
-           filename = makePNGTitle(image_dir, 'sections_worked_map')
-           graphics.save_image(image_data, image_size, filename)
-           gc.collect()
+       # There is a memory leak in the next code -- is there?
+       image_data, image_size = graphics.draw_map(size, qsos_by_section)
+       if image_data is not None:
+          filename = makePNGTitle(image_dir, 'sections_worked_map')
+          graphics.save_image(image_data, image_size, filename)
+          gc.collect()
 
     except Exception as e:
         logging.exception(e)
