@@ -38,18 +38,18 @@ class Modes:
     """
     all the modes that are supported.
     """
-    MODES_LIST = ['N/A', 'CW', 'AM', 'FM', 'LSB', 'USB', 'RTTY', 'PSK', 'PSK31', 'PSK63', 'FT8', 'FT4']
+    MODES_LIST = ['N/A', 'CW', 'AM', 'FM', 'LSB', 'USB', 'SSB', 'RTTY', 'PSK', 'PSK31', 'PSK63', 'FT8', 'FT4', 'MFSK', 'NoMode', 'None']
     MODES = {elem: index for index, elem in enumerate(MODES_LIST)}
 
     """
     simplified modes for score reporting: CW, PHONE, DATA
     """
     SIMPLE_MODES_LIST = ['N/A', 'CW', 'PHONE', 'DATA']
-    MODE_TO_SIMPLE_MODE = [0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]
+    MODE_TO_SIMPLE_MODE = [0, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 2]
     SIMPLE_MODE_POINTS = [0, 2, 1, 2]  # n/a, CW, phone, digital
     SIMPLE_MODES = {'N/A': 0, 'CW': 1,
-                    'AM': 2, 'FM': 2, 'LSB': 2, 'USB': 2,
-                    'RTTY': 3, 'PSK': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3, 'FT4': 3, 'MFSK': 3,
+                    'AM': 2, 'FM': 2, 'LSB': 2, 'USB': 2, 'SSB': 2, 'None': 2,
+                    'RTTY': 3, 'PSK': 3, 'PSK31': 3, 'PSK63': 3, 'FT8': 3, 'FT4': 3, 'MFSK': 3, 'NoMode': 3,
                     }
 
     @classmethod

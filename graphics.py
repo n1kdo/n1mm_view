@@ -17,6 +17,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import pygame
 from matplotlib.dates import HourLocator, DateFormatter
+import pprint
 
 from config import Config
 from constants import *
@@ -210,7 +211,34 @@ def qso_classes_graph(size, qso_classes):
         values.append(d[0])
     return make_pie(size, values, labels, "QSOs by Class")
 
+def qso_table(size, qsos):
+    """
+    create the a table of the qso log
+    """
+    if len(qsos) == 0:
+        return None, (0, 0)
 
+    count = 0
+    cells = [['Time', 'Call', 'Band', 'Mode', 'Operator', 'Section', 'Station']]
+    
+    for d in qsos:
+        cells.append( ['%s' % datetime.datetime.utcfromtimestamp(d[0]).strftime('%Y %b %d %H:%M:%S') # Time
+                     ,'%s' % d[1] # Call
+                     ,'%s' % d[2] # Band
+                     ,'%s' % d[3] # Mode
+                     ,'%s' % d[4] # Operator
+                     ,'%s' % d[6] # Section
+                     ,'%s' % d[7] # Station
+                     ])
+        count += 1
+        if count >= 10:
+            break
+
+    if count == 0:
+        return None, (0, 0)
+    else:
+        return draw_table(size, cells, "Last 10 QSOs")
+        
 def qso_operators_table(size, qso_operators):
     """
     create the Top 5 QSOs by Operators table

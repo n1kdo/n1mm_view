@@ -211,7 +211,8 @@ def get_last_qso(cursor) :
         message = 'Last QSO: %s %s %s on %s by %s at %s' % (
             row[1], row[2], row[3], constants.Bands.BANDS_TITLE[row[5]], row[4],
             datetime.utcfromtimestamp(row[0]).strftime('%H:%M:%S'))
-    logging.debug('%s' % (message))
+        logging.debug('%s' % (message))
+
     return last_qso_time, message
 
 
@@ -308,3 +309,34 @@ def get_qsos_by_section(cursor):
         qsos_by_section[row[0]] = row[1]
         logging.debug(f'Section {row[0]} {row[1]}')
     return qsos_by_section
+    
+def get_last_N_qsos(cursor, nQSOCount):
+    logging.info('get_last_N_qsos for last %d QSOs' % (nQSOCount))
+    qsos = []
+    cursor.execute('SELECT qso_id, timestamp, callsign, band_id, mode_id, operator.name, rx_freq, tx_freq, exchange, section, station.name \n'
+                   'FROM qso_log '
+                   'JOIN operator ON operator.id = operator_id\n'
+                   'JOIN station ON station.id = station_id\n'
+                   'ORDER BY timestamp DESC LIMIT %d;' % (nQSOCount))
+    for row in cursor:
+        qsos.append(( row[1] # raw timestamp 0
+                    ,row[2] # call 1
+                    ,constants.Bands.BANDS_TITLE[row[3]] # band 2
+                    ,constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]  # mode 3
+                    ,row[5] # operator callsign 4
+                    ,row[8] # exchange 5
+                    ,row[9] # section 6
+                    ,row[10] # station name 7
+                   ))
+        message = 'QSO: time=%sZ call=%s exchange=%s %s mode=%s band=%s operator=%s station=%s' % (
+             datetime.utcfromtimestamp(row[1]).strftime('%Y %b %d %H:%M:%S')
+            ,row[2] # callsign
+            ,row[8] # exchange
+            ,row[9] # section
+            ,constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]
+            ,constants.Bands.BANDS_TITLE[row[3]]
+            ,row[5] #operator
+            ,row[10] #station
+            )
+        logging.info('%s' % (message))
+    return qsos
