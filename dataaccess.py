@@ -54,6 +54,7 @@ def create_tables(db, cursor):
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_station_id ON qso_log(station_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_section ON qso_log(section);')
     cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_qso_id ON qso_log(qso_id);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS qso_log_qso_timestamp ON qso_log(timestamp);')
     db.commit()
 
 
