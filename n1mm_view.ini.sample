@@ -15,7 +15,7 @@
 #    For ARRL Field Day, grab the new logo each year
 #    If you are using the headless.py script to generate graphics to load to your website, 
 #    modify the POST_FILE_COMMAND to rsync the files or run a script if you want to do multiple steps.
-#    If you use a script like postCommands.sh, make it executable with chmod +x postCommands.py
+#    If you use a script like postCommands.sh, make it executable with chmod +x postCommands.sh
 
 
 
@@ -23,6 +23,7 @@
 DATABASE_FILENAME = n1mm_view.db
 DISPLAY_DWELL_TIME = 6
 DATA_DWELL_TIME = 60
+HEADLESS_DWELL_TIME = 120
 LOG_LEVEL = INFO
 LOGO_FILENAME = /home/pi/wfda_logo.png
 
