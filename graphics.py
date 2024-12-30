@@ -17,7 +17,6 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import pygame
 from matplotlib.dates import HourLocator, DateFormatter
-import pprint
 
 from config import Config
 from constants import *
@@ -221,7 +220,7 @@ def qso_table(size, qsos):
     count = 0
     cells = [['Time', 'Call', 'Band', 'Mode', 'Operator', 'Section', 'Station']]
     
-    for d in qsos:
+    for d in qsos[:10]:
         cells.append( ['%s' % datetime.datetime.utcfromtimestamp(d[0]).strftime('%Y %b %d %H:%M:%S') # Time
                      ,'%s' % d[1] # Call
                      ,'%s' % d[2] # Band
@@ -231,8 +230,6 @@ def qso_table(size, qsos):
                      ,'%s' % d[7] # Station
                      ])
         count += 1
-        if count >= 10:
-            break
 
     if count == 0:
         return None, (0, 0)

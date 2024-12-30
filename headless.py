@@ -72,7 +72,7 @@ def create_images(size, image_dir, last_qso_timestamp):
 
         logging.debug('old_timestamp = %s, timestamp = %s' % (last_qso_timestamp, last_qso_time))
         if config.SKIP_TIMESTAMP_CHECK: 
-           logging.warn('Skipping check for a recent QSO - Please jkust use this for debug - Review SKIP_TIMESTAMP_CHECK in ini file')
+           logging.warn('Skipping check for a recent QSO - Please just use this for debug - Review SKIP_TIMESTAMP_CHECK in ini file')
         if last_qso_time != last_qso_timestamp or config.SKIP_TIMESTAMP_CHECK:
             # last_qso_time is passed as the result and updated in call to this function.
             logging.debug('data updated!')
