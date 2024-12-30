@@ -50,6 +50,7 @@ def create_images(size, image_dir, last_qso_timestamp):
     qsos_per_hour = []
     qsos_by_section = {}
     qso_classes = []
+    qsos = []
 
     db = None
     data_updated = False
@@ -70,7 +71,9 @@ def create_images(size, image_dir, last_qso_timestamp):
         last_qso_time, message = dataaccess.get_last_qso(cursor)
 
         logging.debug('old_timestamp = %s, timestamp = %s' % (last_qso_timestamp, last_qso_time))
-        if last_qso_time != last_qso_timestamp:
+        if config.SKIP_TIMESTAMP_CHECK: 
+           logging.warn('Skipping check for a recent QSO - Please just use this for debug - Review SKIP_TIMESTAMP_CHECK in ini file')
+        if last_qso_time != last_qso_timestamp or config.SKIP_TIMESTAMP_CHECK:
             # last_qso_time is passed as the result and updated in call to this function.
             logging.debug('data updated!')
             data_updated = True
@@ -95,8 +98,11 @@ def create_images(size, image_dir, last_qso_timestamp):
 
             # load QSOs by Section
             qsos_by_section = dataaccess.get_qsos_by_section(cursor)
+            
+            # load last 10 qsos
+            qsos = dataaccess.get_last_N_qsos(cursor, 10) # Note this returns last 10 qsos in reverse order so oldest is first
 
-        logging.debug('load data done')
+        logging.info('load data done')
     except sqlite3.OperationalError as error:
         logging.exception(error)
         return
@@ -115,6 +121,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_rates_table(size, operator_qso_rates)
             if image_data is not None:
@@ -122,6 +129,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_operators_graph(size, qso_operators)
             if image_data is not None:
@@ -129,6 +137,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_operators_table(size, qso_operators)
             if image_data is not None:
@@ -136,6 +145,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_operators_table_all(size, qso_operators)
             if image_data is not None:
@@ -143,6 +153,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)  
+        
         try:
             image_data, image_size = graphics.qso_stations_graph(size, qso_stations)
             if image_data is not None:
@@ -150,6 +161,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
             if image_data is not None:
@@ -157,6 +169,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
             if image_data is not None:
@@ -164,6 +177,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
             if image_data is not None:
@@ -171,6 +185,7 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+        
         try:
             image_data, image_size = graphics.qso_rates_graph(size, qsos_per_hour)
             if image_data is not None:
@@ -178,15 +193,23 @@ def create_images(size, image_dir, last_qso_timestamp):
                graphics.save_image(image_data, image_size, filename)
         except Exception as e:
             logging.exception(e)
+            
+        try:
+            image_data, image_size = graphics.qso_table(size, qsos)
+            if image_data is not None:
+               filename = makePNGTitle(image_dir, 'last_qso_table')
+               graphics.save_image(image_data, image_size, filename)
+        except Exception as e:
+            logging.exception(e)
 
     # map gets updated every time so grey line moves
     try:
-        # There is a memory leak in the next code -- is there?
-        image_data, image_size = graphics.draw_map(size, qsos_by_section)
-        if image_data is not None:
-           filename = makePNGTitle(image_dir, 'sections_worked_map')
-           graphics.save_image(image_data, image_size, filename)
-           gc.collect()
+       # There is a memory leak in the next code -- is there?
+       image_data, image_size = graphics.draw_map(size, qsos_by_section)
+       if image_data is not None:
+          filename = makePNGTitle(image_dir, 'sections_worked_map')
+          graphics.save_image(image_data, image_size, filename)
+          gc.collect()
 
     except Exception as e:
         logging.exception(e)

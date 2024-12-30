@@ -18,9 +18,9 @@ This last command will run for quite some time.
 The latest test took about 90 minutes with a good internet connection for a Raspberry Pi 3 B+ (18 minutes on a Pi 4B). We gave it a lot of things to do so you won't need to do them.
 While you are waiting, you could create a splash screen for your event: a 1000x1000 portable network graphics (.png) image in RGB format works great.   
 
-Copy the file config-sample.ini to ~/.config/n1mm_view.ini.
+Copy the file `n1mm_view.ini.sample` to `~/.config/n1mm_view.ini`. Note you can also put the file in your home directory (`~/`) or the script directory. But the file can only be in one of those places--not two or three.
 
-Note to pame it easier if you need to run dashboard.py as sudo, it is useful to create a symbolic link named /root/.config/n1mm_view.ini to point to /home/pi/.config/n1mm_view.ini.
+Note to make it easier if you need to run dashboard.py as sudo, it is useful to create a symbolic link named /root/.config/n1mm_view.ini to point to /home/pi/.config/n1mm_view.ini.
 Use the following command if so desired: 
  ```
 sudo ln -s  /home/pi/.config/n1mm_view.ini    /root/.config/n1mm_view.ini

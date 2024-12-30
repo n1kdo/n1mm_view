@@ -39,7 +39,8 @@ cp ./apache2/conf-available/n1mm_view.conf /etc/apache2/conf-available/.
 a2enconf n1mm_view
 apache2ctl restart
 
-cp config-sample.ini ~/.config/n1mm_view.ini
+cp n1mm_view.ini.sample ~/.config/n1mm_view.ini
+
 echo
-echo "Remember to update ~/.config/n1mm_view.ini file with your settings before starting the collector and dashboard."
+echo "Remember to update ~/.config/n1mm_view.ini file with your settings before starting any of the scripts."
 echo
