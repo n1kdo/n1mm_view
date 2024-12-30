@@ -218,16 +218,16 @@ def qso_table(size, qsos):
         return None, (0, 0)
 
     count = 0
-    cells = [['Time', 'Call', 'Band', 'Mode', 'Operator', 'Section', 'Station']]
+    cells = [['Time', 'Call', 'Band', 'Mode', 'Operator', 'Section']] #, 'Station']]
     
     for d in qsos[:10]:
-        cells.append( ['%s' % datetime.datetime.utcfromtimestamp(d[0]).strftime('%Y %b %d %H:%M:%S') # Time
+        cells.append( ['%s' % datetime.datetime.utcfromtimestamp(d[0]).strftime('%m-%d-%y %Tz') # Time
                      ,'%s' % d[1] # Call
                      ,'%s' % d[2] # Band
                      ,'%s' % d[3] # Mode
                      ,'%s' % d[4] # Operator
                      ,'%s' % d[6] # Section
-                     ,'%s' % d[7] # Station
+       #              ,'%s' % d[7] # Station
                      ])
         count += 1
 
