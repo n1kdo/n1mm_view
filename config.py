@@ -116,6 +116,7 @@ class Config(metaclass = Singleton):
         self.DISPLAY_DWELL_TIME = cfg.getint('GLOBAL','DISPLAY_DWELL_TIME',fallback=6)
         self.DATA_DWELL_TIME = cfg.getint('GLOBAL','DATA_DWELL_TIME',fallback=60)
         self.HEADLESS_DWELL_TIME = cfg.getint('GLOBAL','HEADLESS_DWELL_TIME',fallback=180)
+        self.SKIP_TIMESTAMP_CHECK = cfg.getboolean('DEBUG','SKIP_TIMESTAMP_CHECK',fallback=False)
         
         
         

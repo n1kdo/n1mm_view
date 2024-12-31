@@ -6,18 +6,21 @@
 
 [Unit]
 Description=N1MM View Dashboard process
-After=gettty@tty3.service
+After=gettty@tty5.service
 
 [Service]
 User=pi
 Group=pi
 Type=simple
 WorkingDirectory=/home/pi/n1mm_view
+
+# Wait until we startup dashboard
+#ExecStartPre=/bin/sleep 30 
 ExecStart=/home/pi/n1mm_view/dashboard.py
 StandardInput=tty
-StandardOutput=syslog
-StandardError=syslog
-TTYPath=/dev/tty3
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty5
 TTYReset=yes
 TTYVHangup=yes
 
