@@ -12,14 +12,15 @@ installation (32- vs. 64-bit.)
 """
 
 import datetime
+import logging
 import os
 import socket
 import sqlite3
 import sys
 import time
 
-import config
-from config import *
+from config import Config
+config = Config()
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
 __copyright__ = 'Copyright 2016, 2017, 2019, 2021 Jeffrey B. Otterson and n1mm_view maintainers'
@@ -32,7 +33,8 @@ FACTOR is the speed-up factor for replaying, because I don't have a whole day to
 load a day-long contest's data.  Set this to 10 for a 10X speedup.  Set to 60 to make 
 minutes take seconds.  set to 60, an day long contest should take about 24 minutes to replay. 
 """
-FACTOR = 60
+# FACTOR = 60
+FACTOR = 120
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.DEBUG)
@@ -100,11 +102,11 @@ def main():
     """
     logging.info('replayer started...')
 
-    if not os.path.exists(N1MM_LOG_FILE_NAME):
-        logging.error('cannot find N1MM database file %s', N1MM_LOG_FILE_NAME)
+    if not os.path.exists(config.N1MM_LOG_FILE_NAME):
+        logging.error('cannot find N1MM database file %s', config.N1MM_LOG_FILE_NAME)
         sys.exit(1)
 
-    db_uri = 'file:{}?mode=ro'.format(N1MM_LOG_FILE_NAME)
+    db_uri = 'file:{}?mode=ro'.format(config.N1MM_LOG_FILE_NAME)
     with sqlite3.connect(db_uri, uri=True) as db:
         cursor = db.cursor()
 
@@ -141,7 +143,7 @@ def main():
                     time.sleep(delay)
 
                 last_tm = tm
-                s.sendto(payload.encode(), (N1MM_BROADCAST_ADDRESS, N1MM_BROADCAST_PORT))
+                s.sendto(payload.encode(), (config.N1MM_BROADCAST_ADDRESS, config.N1MM_BROADCAST_PORT))
                 qso_number += 1
                 logging.info('sent qso # {} timestamp {}'.format(qso_number, ts))
             else:

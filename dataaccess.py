@@ -59,9 +59,9 @@ def create_tables(db, cursor):
 
 
 def record_contact_combined(db, cursor, operators, stations,
-                   timestamp, mycall, band, mode, operator, station,
-                   rx_freq, tx_freq, callsign, rst_sent, rst_recv,
-                   exchange, section, comment, qso_id):
+                            timestamp, mycall, band, mode, operator, station,
+                            rx_freq, tx_freq, callsign, rst_sent, rst_recv,
+                            exchange, section, comment, qso_id):
     """
     record the results of a contact_message
     """
@@ -158,7 +158,7 @@ def update_contact(db, cursor, operators, stations,
             '    set timestamp=?, mycall=?, band_id=?, mode_id=?, operator_id=?, station_id=? , rx_freq=?, tx_freq=?, \n'
             '     callsign=?, rst_sent=?, rst_recv=?, exchange=?, section=?, comment=? \n'
             ' where qso_id = ?;',
-             (calendar.timegm(timestamp), mycall, band_id, mode_id, operator_id, station_id, rx_freq, tx_freq,
+            (calendar.timegm(timestamp), mycall, band_id, mode_id, operator_id, station_id, rx_freq, tx_freq,
              callsign, rst_sent, rst_recv, exchange, section, comment, qso_id))
 
         db.commit()
@@ -201,7 +201,7 @@ def delete_contact_by_qso_id(db, cursor, qso_id):
         return ''
 
 
-def get_last_qso(cursor) :
+def get_last_qso(cursor):
     cursor.execute('SELECT timestamp, callsign, exchange, section, operator.name, band_id \n'
                    'FROM qso_log JOIN operator WHERE operator.id = operator_id \n'
                    'ORDER BY timestamp DESC LIMIT 1')
@@ -274,10 +274,12 @@ def get_qso_classes(cursor):
         exchanges.append((row[0], row[1]))
     return exchanges
 
+
 def get_qsos_per_hour_per_band(cursor):
     qsos_per_hour = []
     qsos_by_band = [0] * constants.Bands.count()
     slice_minutes = 15
+    slice_minutes = 12  # TODO FIXME was 15, 12 looks pretty ok
     slices_per_hour = 60 / slice_minutes
     window_seconds = slice_minutes * 60
 
@@ -295,9 +297,9 @@ def get_qsos_per_hour_per_band(cursor):
         qsos_per_hour[-1][row[1]] = row[2] * slices_per_hour
         qsos_by_band[row[1]] += row[2]
 
-    for rec in qsos_per_hour:  # FIXME
+    for rec in qsos_per_hour:
         rec[0] = datetime.utcfromtimestamp(rec[0])
-        t = rec[0].strftime('%H:%M:%S')
+        # t = rec[0].strftime('%H:%M:%S')
 
     return qsos_per_hour, qsos_by_band
 
@@ -310,34 +312,36 @@ def get_qsos_by_section(cursor):
         qsos_by_section[row[0]] = row[1]
         logging.debug(f'Section {row[0]} {row[1]}')
     return qsos_by_section
-    
+
+
 def get_last_N_qsos(cursor, nQSOCount):
     logging.info('get_last_N_qsos for last %d QSOs' % (nQSOCount))
     qsos = []
-    cursor.execute('SELECT qso_id, timestamp, callsign, band_id, mode_id, operator.name, rx_freq, tx_freq, exchange, section, station.name \n'
-                   'FROM qso_log '
-                   'JOIN operator ON operator.id = operator_id\n'
-                   'JOIN station ON station.id = station_id\n'
-                   'ORDER BY timestamp DESC LIMIT %d;' % (nQSOCount))
+    cursor.execute(
+        'SELECT qso_id, timestamp, callsign, band_id, mode_id, operator.name, rx_freq, tx_freq, exchange, section, station.name \n'
+        'FROM qso_log '
+        'JOIN operator ON operator.id = operator_id\n'
+        'JOIN station ON station.id = station_id\n'
+        'ORDER BY timestamp DESC LIMIT %d;' % (nQSOCount))
     for row in cursor:
-        qsos.append(( row[1] # raw timestamp 0
-                    ,row[2] # call 1
-                    ,constants.Bands.BANDS_TITLE[row[3]] # band 2
-                    ,constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]  # mode 3
-                    ,row[5] # operator callsign 4
-                    ,row[8] # exchange 5
-                    ,row[9] # section 6
-                    ,row[10] # station name 7
-                   ))
+        qsos.append((row[1]  # raw timestamp 0
+                         , row[2]  # call 1
+                         , constants.Bands.BANDS_TITLE[row[3]]  # band 2
+                         , constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]  # mode 3
+                         , row[5]  # operator callsign 4
+                         , row[8]  # exchange 5
+                         , row[9]  # section 6
+                         , row[10]  # station name 7
+                     ))
         message = 'QSO: time=%sZ call=%s exchange=%s %s mode=%s band=%s operator=%s station=%s' % (
-             datetime.utcfromtimestamp(row[1]).strftime('%Y %b %d %H:%M:%S')
-            ,row[2] # callsign
-            ,row[8] # exchange
-            ,row[9] # section
-            ,constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]
-            ,constants.Bands.BANDS_TITLE[row[3]]
-            ,row[5] #operator
-            ,row[10] #station
-            )
+            datetime.utcfromtimestamp(row[1]).strftime('%Y %b %d %H:%M:%S')
+            , row[2]  # callsign
+            , row[8]  # exchange
+            , row[9]  # section
+            , constants.Modes.SIMPLE_MODES_LIST[constants.Modes.MODE_TO_SIMPLE_MODE[row[4]]]
+            , constants.Bands.BANDS_TITLE[row[3]]
+            , row[5]  # operator
+            , row[10]  # station
+        )
         logging.info('%s' % (message))
     return qsos

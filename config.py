@@ -107,7 +107,7 @@ class Config(metaclass = Singleton):
            exit()
               
         self.N1MM_BROADCAST_PORT = cfg.getint('N1MM INFO','BROADCAST_PORT',fallback=12060)
-        logging.info ('LIstening on UDP port %d' % (self.N1MM_BROADCAST_PORT))
+        logging.info ('Listening on UDP port %d' % (self.N1MM_BROADCAST_PORT))
         self.N1MM_BROADCAST_ADDRESS = cfg.get('N1MM INFO','BROADCAST_ADDRESS')
         self.N1MM_LOG_FILE_NAME = cfg.get('N1MM INFO','LOG_FILE_NAME')
         

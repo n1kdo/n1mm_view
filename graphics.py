@@ -22,7 +22,7 @@ from config import Config
 from constants import *
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2019, 2021, 2024 Jeffrey B. Otterson and n1mm_view maintainers'
+__copyright__ = 'Copyright 2016, 2019, 2021, 2024, 2025 Jeffrey B. Otterson and n1mm_view maintainers'
 __license__ = 'Simplified BSD'
 
 config = Config()
@@ -44,6 +44,12 @@ view_font = pygame.font.Font('VeraMoBd.ttf', config.VIEW_FONT)
 bigger_font = pygame.font.SysFont('VeraMoBd.ttf', config.BIGGER_FONT)
 view_font_height = view_font.get_height()
 
+if matplotlib.__version__.startswith('3.6'):  # hack for raspberry pi.
+    image_format = 'RGB'
+else:
+    image_format = 'ARGB'
+
+logging.warning(f'set image format to {image_format}')
 _map = None
 
 
@@ -107,7 +113,7 @@ def save_image(image_data, image_size, filename):
     if not all(image_size):
        logging.debug('Returning early from save_image since image_size is {0,0}')
        return
-    surface = pygame.image.frombuffer(image_data, image_size, 'RGB')
+    surface = pygame.image.frombuffer(image_data, image_size, image_format)
     logging.debug('Saving file to %s', filename)
     pygame.image.save(surface, filename)
 
@@ -145,7 +151,10 @@ def make_pie(size, values, labels, title):
     canvas.draw()
     renderer = canvas.get_renderer()
     canvas_size = canvas.get_width_height()
-    raw_data = renderer.tostring_rgb()
+    if image_format == 'ARGB':
+        raw_data = renderer.tostring_argb()
+    else:
+        raw_data = renderer.tostring_rgb()
 
     plt.close(fig)
 
@@ -313,7 +322,7 @@ def qso_bands_graph(size, qso_band_modes):
         if bd[1] > 0:
             labels.append(Bands.BANDS_TITLE[bd[0]])
             values.append(bd[1])
-    return make_pie(size, values, labels, "QSOs by Band")
+    return make_pie(size, values, labels, 'QSOs by Band')
 
 
 def qso_modes_graph(size, qso_band_modes):
@@ -417,7 +426,7 @@ def qso_rates_graph(size, qsos_per_hour):
             c = qpm[i]
             cl = qso_counts[i]
             cl.append(c)
-
+    # TODO FIXME remove bands with no data here?
     logging.debug('make_plot(...,...,%s)', title)
     width_inches = size[0] / 100.0
     height_inches = size[1] / 100.0
@@ -467,7 +476,10 @@ def qso_rates_graph(size, qsos_per_hour):
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
-    raw_data = renderer.tostring_rgb()
+    if image_format == 'ARGB':
+        raw_data = renderer.tostring_argb()
+    else:
+        raw_data = renderer.tostring_rgb()
 
     plt.close(fig)
     canvas_size = canvas.get_width_height()
@@ -571,7 +583,7 @@ def draw_table(size, cell_text, title, font=None):
         y += row_height
     logging.debug('draw_table(...,%s) done', title)
     size = surf.get_size()
-    data = pygame.image.tostring(surf, 'RGB')
+    data = pygame.image.tostring(surf, image_format)
 
     return data, size
 
@@ -639,7 +651,10 @@ def draw_map(size, qsos_by_section):
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
-    raw_data = renderer.tostring_rgb()
+    if image_format == 'ARGB':
+        raw_data = renderer.tostring_argb()
+    else:
+        raw_data = renderer.tostring_rgb()
 
     fig.clf()
     plt.close(fig)

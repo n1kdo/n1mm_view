@@ -10,17 +10,15 @@ import sqlite3
 import sys
 import time
 
-import config
+from config import Config
 import dataaccess
 import graphics
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2017, 2019 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2017, 2019, 2025 Jeffrey B. Otterson'
 __license__ = 'Simplified BSD'
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                    level=config.LOG_LEVEL)
-logging.Formatter.converter = time.gmtime
+config = Config()
 
 
 def main():
@@ -100,18 +98,18 @@ def main():
         image_data, image_size = graphics.qso_bands_graph(size, qso_band_modes)
         graphics.save_image(image_data, image_size, 'images/qso_bands_graph.png')
         image_data, image_size = graphics.qso_classes_graph(size, qso_classes)
-        image = pygame.image.frombuffer(image_data, image_size, 'RGB')  # this is the image to SHOW on the screen
         graphics.save_image(image_data, image_size, 'images/qso_classes_graph.png')
         image_data, image_size = graphics.qso_modes_graph(size, qso_band_modes)
         graphics.save_image(image_data, image_size, 'images/qso_modes_graph.png')
         image_data, image_size = graphics.qso_rates_graph(size, qsos_per_hour)
         graphics.save_image(image_data, image_size, 'images/qso_rates_graph.png')
+        image = pygame.image.frombuffer(image_data, image_size, graphics.image_format)  # this is the image to SHOW on the screen
         image_data, image_size = graphics.draw_map(size, qsos_by_section)
         graphics.save_image(image_data, image_size, 'images/qsos_map.png')
         gc.collect()
 
         graphics.show_graph(screen, size, image)
-        pygame.display.flip()
+        pygame.display.update()
 
         # wait for a Q key press
         run = True
