@@ -40,7 +40,6 @@ IMAGE_COUNT = 11
 IMAGE_MESSAGE = 1
 CRAWL_MESSAGE = 2
 
-IMAGE_FORMAT = 'RGB'
 SAVE_PNG = False
 
 def load_data(size, q, last_qso_timestamp):
@@ -391,7 +390,7 @@ def main():
                         n = payload[1]
                         image = payload[2]
                         image_size = payload[3]
-                        images[n] = pygame.image.frombuffer(image, image_size, IMAGE_FORMAT)
+                        images[n] = pygame.image.frombuffer(image, image_size, graphics.image_format)
                         logging.debug('received image %d', n)
                     elif message_type == CRAWL_MESSAGE:
                         n = payload[1]
@@ -406,7 +405,7 @@ def main():
                         crawl_messages.set_message_colors(n, fg, bg)
 
             crawl_messages.crawl_message()
-            pygame.display.flip()
+            pygame.display.update()  # was .flip()
 
             clock.tick(60)
 
