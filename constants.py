@@ -3,7 +3,7 @@ this file contains useful constants for n1mm_view application.
 """
 
 __author__ = 'Jeffrey B. Otterson, N1KDO'
-__copyright__ = 'Copyright 2016, 2020 Jeffrey B. Otterson'
+__copyright__ = 'Copyright 2016, 2020, 2025 Jeffrey B. Otterson & N1MM_View maintainers.'
 __license__ = 'Simplified BSD'
 
 import time
@@ -89,7 +89,6 @@ CONTEST_SECTIONS = {
     'EWA': 'Eastern Washington',
     'GA': 'Georgia',
     'GH': 'Golden Horseshoe',
-    # 'GTA': 'Greater Toronto Area',  # renamed GH 2023-03-15
     'IA': 'Iowa',
     'ID': 'Idaho',
     'IL': 'Illinois',
@@ -98,7 +97,6 @@ CONTEST_SECTIONS = {
     'KY': 'Kentucky',
     'LA': 'Louisiana',
     'LAX': 'Los Angeles',
-    # 'MAR': 'Maritime',  # OBSOLETE 2023-01-01, replaced with NB and NS
     'MB': 'Manitoba',
     'MDC': 'Maryland - DC',
     'ME': 'Maine',
@@ -119,7 +117,6 @@ CONTEST_SECTIONS = {
     'NNJ': 'Northern New Jersey',
     'NNY': 'Northern New York',
     'NS': 'Nova Scotia',
-    # 'NT': 'Northern Territories',  # renamed TER 2023-03-15
     'NTX': 'North Texas',
     'NV': 'Nevada',
     'OH': 'Ohio',
@@ -161,4 +158,5 @@ CONTEST_SECTIONS = {
     'WV': 'West Virginia',
     'WWA': 'Western Washington',
     'WY': 'Wyoming',
+    'YT': 'Yukon'
 }
